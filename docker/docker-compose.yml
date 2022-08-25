@@ -1,0 +1,61 @@
+services:
+  web:
+    build: "../micros/web"
+    ports:
+      - "3000:3000"
+
+  db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    command: mongod --quiet --logpath /dev/null
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ../micros/web/public:/srv/www/static
+      - ../default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web
+      - auth
+      - profile
+      - admin
+
+  # Microservices
+  perofile:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        MICRONAME: profile
+    ports:
+      - "3003:3000"
+    depends_on:
+      - db
+    env_file:
+      - "../config/env/.env.profile.config"
+  admin:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        MICRONAME: admin
+    ports:
+      - "3001:3000"
+    depends_on:
+      - db
+    env_file:
+      - "../config/env/.env.admin.config"
+  auth:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      args:
+        MICRONAME: auth
+    ports:
+      - "3002:3000"
+    depends_on:
+      - db
+    env_file:
+      - "../config/env/.env.auth.config"

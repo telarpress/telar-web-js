@@ -1,0 +1,74 @@
+<!-- views/success.ejs -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Github OAuth</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+    <!-- load bulma css -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+    <!-- load fontawesome -->
+    <style>
+      body {
+        padding-top: 70px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="jumbotron">
+        <h1 class="text-primary text-center">
+          <span class="fa fa-github"></span> Github Information
+        </h1>
+        <div class="row">
+          <div class="col-sm-6">
+            <div class="well">
+              <p>
+                <!-- https://docs.github.com/en/rest/users/users -->
+                <strong>Name</strong>: {{userData.name}}<br />
+                <strong>Username</strong>: {{userData.login}}<br />
+                <strong>id</strong>: {{userData.id}}<br />
+                <strong>node_id</strong>: {{userData.node_id}}<br />
+                <strong>avatar_url</strong>: {{userData.avatar_url}}<br />
+                <strong>gravatar_id</strong>: {{userData.gravatar_id}}<br />
+                <strong>url</strong>: {{userData.url}}<br />
+                <strong>html_url</strong>: {{userData.html_url}}<br />
+                <strong>type</strong>: {{userData.type}}<br />
+                <strong>site_admin</strong>: {{userData.site_admin}}<br />
+                <strong>company</strong>: {{userData.company}}<br />
+                <strong>blog</strong>: {{userData.blog}}<br />
+                <strong>location</strong>: {{userData.location}}<br />
+                <strong>email</strong>: {{userData.email}}<br />
+                <strong>hireable</strong>: {{userData.hireable}}<br />
+                <strong>bio</strong>: {{userData.bio}}<br />
+                <strong>twitter_username</strong>:
+                {{userData.twitter_username}}<br />
+                <strong>public_repos</strong>: {{userData.public_repos}}<br />
+                <strong>public_gists</strong>: {{userData.public_gists}}<br />
+                <strong>followers</strong>: {{userData.followers}}<br />
+                <strong>following</strong>: {{userData.following}}<br />
+                <strong>created_at</strong>: {{userData.created_at}}<br />
+                <strong>updated_at</strong>: {{userData.updated_at}}<br />
+
+                <strong>gists_url</strong>: {{userData.gists_url}}<br />
+                <strong>followers_url</strong>: {{userData.followers_url}}<br />
+                <strong>subscriptions_url</strong>:
+                {{userData.subscriptions_url}}<br />
+                <strong>organizations_url</strong>:
+                {{userData.organizations_url}}<br />
+                <strong>repos_url</strong>: {{userData.repos_url}}<br />
+                <strong>received_events_url</strong>:
+                {{userData.received_events_url}}<br />
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

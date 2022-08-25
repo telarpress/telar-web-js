@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Google SignIn</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+    <!-- load bootstrap css -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+    <!-- load fontawesome -->
+    <style>
+      body {
+        padding-top: 70px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="jumbotron">
+        <h1 class="text-primary text-center">
+        <img src="{{user.picture}}" class="rounded" alt="{{user.name}}">
+        </span> Profile Information
+        </h1>
+        <div class="row">
+          <div class="col-sm-6">
+            <div class="well">
+              <p>
+                <strong>Id</strong>: {{user.sub}}<br />
+                <strong>fullname</strong>: {{user.name}}<br />
+                <strong>given</strong>: {{user.given_name}}<br />
+                <strong>family</strong>: {{user.family_name}}<br />
+                <strong>email</strong>: {{user.email}}<br />
+                <strong>email_verified</strong>: {{user.email_verified}}<br />
+                <strong>locale</strong>: {{user.locale}}<br />
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

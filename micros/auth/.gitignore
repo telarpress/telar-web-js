@@ -5,10 +5,9 @@
 
 # testing
 /coverage
-/.eslintcache
+
 # production
 /build
-/data
 
 # misc
 .DS_Store
@@ -22,7 +21,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-/.vscode/
+.vscode/
 src/data/awsClient
 src/components/AWS.tsx
 */.DS_Store
