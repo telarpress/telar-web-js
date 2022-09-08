@@ -33,13 +33,13 @@ exports.signupPageHandler = async (req, res) => {
 
   var viewData = {
     Title: "Create User",
-    OrgName: appConfig.OrgName,
-    OrgAvatar: appConfig.OrgAvatar,
-    AppName: appConfig.AppName,
+    OrgName: appConfig.ORG_NAME,
+    OrgAvatar: appConfig.ORG_AVATAR,
+    AppName: appConfig.APP_NAME,
     ActionForm: "/auth/signup",
     LoginLink: "/auth/login",
-    RecaptchaKey: appConfig.recaptchaSiteKey,
-    VerifyType: appConfig.VerifyType,
+    RecaptchaKey: appConfig.RECAPTCHA_SITE_KEY,
+    VerifyType: appConfig.VERIFY_TYPE,
   };
   res.render("signup", viewData);
 };
@@ -83,7 +83,7 @@ exports.signupTokenHandle = async (req, res) => {
 
     if (!resultRecaptchV3) {
       log.Error(
-        `Can not verify recaptcha ${appConfig.recaptchaSiteKey} error: ${resultRecaptchV3}`
+        `Can not verify recaptcha ${appConfig.RECAPTCHA_SITE_KEY} error: ${resultRecaptchV3}`
       );
       return res
         .status(HttpStatusCode.InternalServerError)
@@ -213,9 +213,9 @@ exports.signupTokenHandle = async (req, res) => {
   }
 
   link = `${emailVerification.code}`;
-  const verification_Address = `${appConfig.baseURL}${appConfig.verification_Address}`;
+  const verification_Address = `${appConfig.WEB_URL}${appConfig.verification_Address}`;
   // TODO: if Verfify By Link
-  // link = `${appConfig.authServiceURL}/user/verify/${emailVerification.code}`;
+  // link = `${appConfig.AUTH_WEB_URI}/user/verify/${emailVerification.code}`;
 
   // Send Email
   const sendVerificationEmail = await sendEmail(
@@ -248,9 +248,9 @@ exports.signupTokenHandle = async (req, res) => {
 exports.verifyGetSignupHandle = async (req, res) => {
   var viewData = {
     Title: "Verifaction - Telar Social",
-    AppName: appConfig.AppName,
-    OrgAvatar: appConfig.OrgAvatar,
-    OrgName: appConfig.OrgName,
+    AppName: appConfig.APP_NAME,
+    OrgAvatar: appConfig.ORG_AVATAR,
+    OrgName: appConfig.ORG_NAME,
     ActionForm: "/auth/signup/verify",
     SignupLink: "/auth/signup",
     Message: "You Can Signin To the Website",
@@ -370,15 +370,15 @@ exports.loginPageHandler = async (req, res) => {
     res.clearCookie("refreshToken");
   }
 
-  let gitClientID = appConfig.clientID
+  let gitClientID = appConfig.CLIENT_ID
     ? "https://github.com/login/oauth/authorize?client_id=" +
-      appConfig.clientID +
+      appConfig.CLIENT_ID +
       "scope=user%20repo_deployment%20read:user"
     : "";
 
   var viewData = {
-    AppName: appConfig.AppName,
-    OrgName: appConfig.OrgName,
+    AppName: appConfig.APP_NAME,
+    OrgName: appConfig.ORG_NAME,
     ActionForm: "/auth/login",
     Message: "You Can Signin To the Website",
     ResetPassLink: "/auth/password/forgetwithcode",
@@ -386,7 +386,7 @@ exports.loginPageHandler = async (req, res) => {
     GithubLink: gitClientID,
     GoogleLink: "/auth/google",
     Title: "Login - Telar Social",
-    OrgAvatar: appConfig.OrgAvatar,
+    OrgAvatar: appConfig.ORG_AVATAR,
   };
   res.render("login", viewData);
 };
@@ -532,12 +532,12 @@ exports.getResetUserPassword = async (req, res) => {
   }
 
   var viewData = {
-    AppName: appConfig.AppName,
+    AppName: appConfig.APP_NAME,
     ActionForm: "/auth/password/reset",
     LoginLink: "/auth/login",
-    OrgName: appConfig.OrgName,
+    OrgName: appConfig.ORG_NAME,
     Title: "Reset User Password",
-    OrgAvatar: appConfig.OrgAvatar,
+    OrgAvatar: appConfig.ORG_AVATAR,
   };
   res.render("reset_password", viewData);
 };
@@ -599,11 +599,11 @@ exports.resetUserPassword = async (req, res) => {
 // Forget password With Code Page
 exports.forgetPasswordWithCodePageHandler = async (req, res) => {
   var viewData = {
-    AppName: appConfig.AppName,
+    AppName: appConfig.APP_NAME,
     LoginLink: "/auth/login",
-    OrgName: appConfig.AppName,
+    OrgName: appConfig.ORG_NAME,
     Title: "Forget Password",
-    OrgAvatar: appConfig.OrgAvatar,
+    OrgAvatar: appConfig.ORG_AVATAR,
     ActionForm: "/auth/password/forgetwithcode",
   };
   res.render("forget_password_code", viewData);
@@ -623,11 +623,11 @@ exports.forgetPasswordPageHandler = async (req, res) => {
   }
 
   var viewData = {
-    AppName: appConfig.AppName,
+    AppName: appConfig.APP_NAME,
     LoginLink: "/auth/login",
-    OrgName: appConfig.AppName,
+    OrgName: appConfig.ORG_NAME,
     Title: "Forget Password",
-    OrgAvatar: appConfig.OrgAvatar,
+    OrgAvatar: appConfig.ORG_AVATAR,
     ActionForm: "/auth/password/forget",
   };
   res.render("forget_password", viewData);
@@ -793,11 +793,11 @@ exports.forgetPasswordwithCodeFormHandler = async (req, res) => {
 // Forget password Page
 exports.getForgetPasswordPage = async (req, res) => {
   var viewData = {
-    AppName: appConfig.AppName,
+    AppName: appConfig.APP_NAME,
     LoginLink: "/auth/login",
-    OrgName: appConfig.AppName,
+    OrgName: appConfig.ORG_NAME,
     Title: "Forget Password",
-    OrgAvatar: appConfig.OrgAvatar,
+    OrgAvatar: appConfig.ORG_AVATAR,
     ActionForm: "/auth/password/forgetbyemail",
   };
   res.render("forget_password", viewData);
@@ -844,8 +844,8 @@ exports.forgetPassword = async (req, res) => {
   // let token = await authService.getTokenByUserId(user.objectId);
   // if (!token)
   const token = await authService.createToken(user.objectId);
-  // const link = `${appConfig.authServiceURL}/forget_password/${user.objectId}/${token.code}`;
-  const link = `${appConfig.authServiceURL}/password/forgetbyemail/${user.objectId}/${token.code}`;
+  // const link = `${appConfig.AUTH_WEB_URI}/forget_password/${user.objectId}/${token.code}`;
+  const link = `${appConfig.AUTH_WEB_URI}/password/forgetbyemail/${user.objectId}/${token.code}`;
 
   let sendMail = false;
   sendMail = await sendEmail(
@@ -993,7 +993,7 @@ exports.gitCallback = async (req, res) => {
   const requestToken = req.query.code;
   const gitCallback = await axios({
     method: "post",
-    url: `https://github.com/login/oauth/access_token?client_id=${appConfig.clientID}&client_secret=${appConfig.clientSecret}&code=${requestToken}`,
+    url: `https://github.com/login/oauth/access_token?client_id=${appConfig.CLIENT_ID}&client_secret=${appConfig.clientSecret}&code=${requestToken}`,
     // Set the content type header, so that we get the response in JSON
     headers: {
       accept: "application/json",

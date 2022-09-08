@@ -1,3 +1,0 @@
-environment:
-  base_route: "/profile"
-  write_debug: "true"

@@ -11,8 +11,8 @@ exports.sendEmail = function (
 ) {
   return new Promise((resolve, reject) => {
     const transporter = nodemailer.createTransport({
-      host: appConfig.emailCenter,
-      port: appConfig.emailPort,
+      host: appConfig.SMTP_EMAIL_HOST,
+      port: appConfig.SMTP_EMAIL_PORT,
       //secure: true,
       auth: {
         user: appConfig.emailAddress,
@@ -29,13 +29,13 @@ exports.sendEmail = function (
         } else {
           var mapObj = {
             "{{AppURL}}": appConfig.AppURL,
-            "{{AppName}}": appConfig.AppName,
-            "{{OrgAvatar}}": appConfig.OrgAvatar,
+            "{{AppName}}": appConfig.APP_NAME,
+            "{{OrgAvatar}}": appConfig.ORG_AVATAR,
             "{{Name}}": userName,
             "{{Code}}": link,
             "{{Link}}": link,
             "{{additionalField}}": additionalField,
-            "{{OrgName}}": appConfig.OrgName,
+            "{{OrgName}}": appConfig.ORG_NAME,
           };
           html = html.replace(
             /{{AppURL}}|{{AppName}}|{{OrgAvatar}}|{{Name}}|{{Code}}|{{Link}}|{{additionalField}}|{{OrgName}}/gi,
@@ -45,7 +45,7 @@ exports.sendEmail = function (
           );
 
           const mailOptions = {
-            from: appConfig.emailSender, // sender address
+            from: appConfig.REF_EMAIL, // sender address
             to: email, // list of receivers
             subject: emailVerifactionSubject, // Subject line
             text: link, // plain text body
