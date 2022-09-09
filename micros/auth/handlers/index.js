@@ -213,7 +213,7 @@ exports.signupTokenHandle = async (req, res) => {
   }
 
   link = `${emailVerification.code}`;
-  const verification_Address = `${appConfig.WEB_URL}${appConfig.verification_Address}`;
+  const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
   // TODO: if Verfify By Link
   // link = `${appConfig.AUTH_WEB_URI}/user/verify/${emailVerification.code}`;
 
@@ -370,10 +370,10 @@ exports.loginPageHandler = async (req, res) => {
     res.clearCookie("refreshToken");
   }
 
-  let gitClientID = appConfig.CLIENT_ID
+  let gitClientID = appConfig.GITHUB_CLIENT_ID
     ? "https://github.com/login/oauth/authorize?client_id=" +
-      appConfig.CLIENT_ID +
-      "scope=user%20repo_deployment%20read:user"
+      appConfig.GITHUB_CLIENT_ID +
+      "&scope=user%20repo_deployment%20read:user"
     : "";
 
   var viewData = {
@@ -993,7 +993,7 @@ exports.gitCallback = async (req, res) => {
   const requestToken = req.query.code;
   const gitCallback = await axios({
     method: "post",
-    url: `https://github.com/login/oauth/access_token?client_id=${appConfig.CLIENT_ID}&client_secret=${appConfig.clientSecret}&code=${requestToken}`,
+    url: `https://github.com/login/oauth/access_token?client_id=${appConfig.GITHUB_CLIENT_ID}&client_secret=${appConfig.GITHUB_CLIENT_SECRET}&code=${requestToken}`,
     // Set the content type header, so that we get the response in JSON
     headers: {
       accept: "application/json",

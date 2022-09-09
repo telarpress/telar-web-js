@@ -32,7 +32,7 @@ exports.checkUserExistById = async function (objectId, userId) {
 
 exports.recaptchaV3 = async function (response_key) {
   // Put secret key here, which we get from google console
-  const secret_key = appConfig.recaptchaSecretKey;
+  const secret_key = appConfig.RECAPTCHA_SECRET_KEY;
   // Hitting POST request to the URL, Google will
   // respond with success or error scenario.
   const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secret_key}&response=${response_key}`;
@@ -196,11 +196,11 @@ exports.CompareHash = async function (reqPassword, userPassword) {
 };
 
 exports.checkVerifyToken = async function (token) {
-  return await jwt.verify(token, appConfig.accessTPK);
+  return await jwt.verify(token, appConfig.ACCESS_TPK);
 };
 exports.findUserByAccessToken = async function (token) {
   try {
-    const decode = jwt.verify(token, appConfig.accessTPK);
+    const decode = jwt.verify(token, appConfig.ACCESS_TPK);
     return UserAuth.findOne({ objectId: decode.id });
   } catch (error) {
     throw new Error(error);
@@ -213,7 +213,7 @@ exports.changeUserPasswordByAccessToken = async function (
   reqPassword
 ) {
   try {
-    const decode = await jwt.verify(token, appConfig.accessTPK);
+    const decode = await jwt.verify(token, appConfig.ACCESS_TPK);
     const salt = await bcrypt.genSalt(Number(appConfig.SALT));
     let findUser = await UserAuth.findOne({ objectId: decode.id });
     if (!bcrypt.compareSync(oldPassword, findUser.password)) {

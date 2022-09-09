@@ -5,8 +5,8 @@ const utils = require("../utils/error-handler");
 
 exports.connect = async function () {
   let connect;
-  switch (appConfig.DB_TYPE) {
-    case "MONGO":
+  switch (appConfig.DB_TYPE.toLowerCase()) {
+    case "mongo":
       connect = await mongoose.connect(appConfig.DB_URI);
       if (!connect) {
         log.Error(connect);

@@ -4,7 +4,7 @@ const { appConfig } = require("../config");
 
 exports.accessToken = async function (user) {
   const payload = { id: user.objectId, roles: user.role };
-  const jwtToken = jwt.sign(payload, appConfig.accessTPK, {
+  const jwtToken = jwt.sign(payload, appConfig.ACCESS_TPK, {
     expiresIn: "14m",
   });
   return jwtToken;
@@ -12,7 +12,7 @@ exports.accessToken = async function (user) {
 
 exports.refreshToken = async function (user) {
   const payload = { id: user.objectId, roles: user.role };
-  const refreshToken = jwt.sign(payload, appConfig.refreshTPK, {
+  const refreshToken = jwt.sign(payload, appConfig.REFRESH_TPK, {
     expiresIn: "30d",
   });
   return await UserAuth.updateOne(

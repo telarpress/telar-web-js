@@ -15,8 +15,8 @@ exports.sendEmail = function (
       port: appConfig.SMTP_EMAIL_PORT,
       //secure: true,
       auth: {
-        user: appConfig.emailAddress,
-        pass: appConfig.emailPassword,
+        user: appConfig.SMTP_EMAIL_USER,
+        pass: appConfig.SMTP_EMAIL_PASSWORD,
       },
     });
 
@@ -28,7 +28,7 @@ exports.sendEmail = function (
           reject(err);
         } else {
           var mapObj = {
-            "{{AppURL}}": appConfig.AppURL,
+            "{{AppURL}}": appConfig.WEB_URL,
             "{{AppName}}": appConfig.APP_NAME,
             "{{OrgAvatar}}": appConfig.ORG_AVATAR,
             "{{Name}}": userName,

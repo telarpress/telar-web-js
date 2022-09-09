@@ -55,11 +55,11 @@ exports.createUserProfileIndex = async function (postIndexMap) {
   return await UserProfile.createIndexes(postIndexMap);
 };
 exports.findProfileByAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.accessTPK);
+  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
   return await UserProfile.findOne({ objectId: decode.id });
 };
 exports.checkAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.accessTPK);
+  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
   return await UserProfile.findOne({ objectId: decode.id });
 };
 exports.getProfiles = function () {
