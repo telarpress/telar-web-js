@@ -1,0 +1,137 @@
+{
+  "micros": {
+    "action": {
+      "environment": {
+        "base_route": "/actions",
+        "write_debug": "true"
+      }
+    },
+    "admin": {
+      "environment": {
+        "base_route": "/admin",
+        "write_debug": "true",
+        "exec_timeout": 20
+      }
+    },
+    "auth": {
+      "environment": {
+        "base_route": "",
+        "external_redirect_domain": "https://social.telar.dev",
+        "web_url": "http://localhost",
+        "auth_web_uri": "http://localhost/auth",
+        "github_client_id": "9694989aab8f7ab28fc2",
+        "github_app_id": "12345",
+        "oauth_client_secret_path": "/var/openfaas/secrets/ts-client-secret",
+        "oauth_provider": "github",
+        "oauth_provider_base_url": "",
+        "oauth_telar_base_url": "",
+        "google_client_id": "294302728929-60heuun07uruiun04m3sou835rtrugok.apps.googleusercontent.com",
+        "google_callback_url": "http://localhost/auth/google/callback",
+        "report_status": "true",
+        "verify_type": "emv",
+        "write_debug": "true",
+        "exec_timeout": "20s",
+        "read_timeout": "20s",
+        "write_timeout": "20s"
+      }
+    },
+    "circle": {
+      "environment": {
+        "base_route": "/circles",
+        "write_debug": "true"
+      }
+    },
+    "comments": {
+      "environment": {
+        "base_route": "/comments",
+        "write_debug": "true"
+      }
+    },
+    "media": {
+      "environment": {
+        "base_route": "/gallery",
+        "write_debug": "true"
+      }
+    },
+    "notification": {
+      "environment": {
+        "base_route": "/notifications",
+        "write_debug": "true",
+        "web_url": "https://social.telar.dev",
+        "exec_timeout": "20s",
+        "read_timeout": "20s",
+        "write_timeout": "20s"
+      }
+    },
+    "post": {
+      "environment": {
+        "base_route": "/posts",
+        "write_debug": "true"
+      }
+    },
+    "profile": {
+      "environment": {
+        "base_route": "/profile",
+        "write_debug": "true"
+      }
+    },
+    "setting": {
+      "environment": {
+        "base_route": "/setting",
+        "write_debug": "true"
+      }
+    },
+    "storage": {
+      "environment": {
+        "base_route": "/storage",
+        "bucket_name": "resume-web-app.appspot.com",
+        "exec_timeout": "180",
+        "write_timeout": "180",
+        "read_timeout": "180",
+        "write_debug": "true"
+      }
+    },
+    "user_rels": {
+      "environment": {
+        "base_route": "/user-rels",
+        "write_debug": "true"
+      }
+    },
+    "vang": {
+      "environment": {
+        "base_route": "/vang",
+        "write_debug": "true"
+      }
+    },
+    "votes": {
+      "environment": {
+        "base_route": "/votes",
+        "write_debug": "true"
+      }
+    }
+  },
+  "environment": {
+    "app_name": "Telar Social",
+    "base_route_domain": "",
+    "db_type": "mongo",
+    "header_cookie_name": "he",
+    "org_avatar": "https://avatars3.githubusercontent.com/u/43268620",
+    "org_name": "Telar",
+    "payload_cookie_name": "pa",
+    "phone_source_number": "0123456",
+    "read_timeout": "10s",
+    "recaptcha_site_key": "6LcNJ6QgAAAAALmLiLxIuIM08EoIoYAPUv-lWbvG",
+    "redis_address": "redis-19712.c12.us-east-1-4.ec2.cloud.redislabs.com:19712",
+    "ref_email": "no-reply@telar.dev",
+    "signature_cookie_name": "si",
+    "smtp_email_host": "smtp.mailtrap.io",
+    "smtp_email_port": "2525",
+    "write_timeout": "10s",
+    "cookie_root_domain": ".telar.dev",
+    "gateway": "https://social.faas.telar.dev",
+    "internal_gateway": "http://gateway.openfaas:8080/function",
+    "origin": "https://social.faas.telar.dev, https://social.telar.dev, https://auth.telar.dev",
+    "websocket_server_url": "https://telarpress-websocket.herokuapp.com",
+    "debug": true
+  }
+}

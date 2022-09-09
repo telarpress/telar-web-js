@@ -75,7 +75,4 @@ authRouter.get("/auth/logout", handlers.logout);
 authRouter.get("/auth/getUsers", handlers.getUsers);
 authRouter.get("/auth/getTokens", handlers.getTokens);
 
-// Profile
-// authRouter.Put("/auth/profile", handlers.UpdateProfileHandle);
-
 module.exports = authRouter;

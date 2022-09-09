@@ -8,15 +8,58 @@ exports.getProfileData = async function (userId) {
   return await UserProfile.findOne({ objectId: userId });
 };
 
+// IncreaseFollowCount increment follow count of post
+exports.increaseFollowCount = async function (objectId, inc) {
+  let query = { objectId: objectId };
+  const userProfile = await UserProfile.findOne(query);
+  return await UserProfile.updateOne(query, {
+    followCount: Number(userProfile.followCount) + Number(inc),
+  });
+};
+
+// IncreaseFollowerCount increment follow count of post
+exports.increaseFollowerCount = async function (objectId, inc) {
+  let query = { objectId: objectId };
+  const userProfile = await UserProfile.findOne(query);
+  return await UserProfile.updateOne(query, {
+    followerCount: Number(userProfile.followerCount) + Number(inc),
+  });
+};
+
+// FindProfileByUserIds Find profile by user IDs
+exports.findProfileByUserIds = async function (userIds) {
+  const sortMap = {};
+  const include = {};
+  const filter = {};
+  sortMap["createdDate"] = -1;
+  include["$in"] = userIds; // userIds is an Array
+  filter["objectId"] = include;
+  return await UserProfile.find(filter).sort(sortMap);
+};
+exports.updateLastSeenNow = async function (objectId) {
+  await UserProfile.findOneAndUpdate(
+    { objectId: objectId },
+    { lastSeen: Math.floor(Date.now() / 1000) }
+  );
+};
+
+exports.findBySocialName = function (socialName) {
+  return UserProfile.findOne({ socialName: socialName });
+};
+
 exports.getProfileById = function (userId) {
   return UserProfile.findOne({ objectId: userId });
 };
+
+exports.createUserProfileIndex = async function (postIndexMap) {
+  return await UserProfile.createIndexes(postIndexMap);
+};
 exports.findProfileByAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.accessTPK);
+  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
   return await UserProfile.findOne({ objectId: decode.id });
 };
 exports.checkAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.accessTPK);
+  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
   return await UserProfile.findOne({ objectId: decode.id });
 };
 exports.getProfiles = function () {
@@ -36,7 +79,8 @@ exports.generateRandomNumber = function (min, max) {
   return Math.floor(Math.random() * max) + min;
 };
 
-exports.setProfile = function (profile) {
+// CreateProfileHandle handle create a new profile
+exports.createDtoProfileHandle = function (profile) {
   const newProfile = new UserProfile({
     socialName: this.generateSocialName(profile.fullName, profile.id),
     objectId: profile.id,

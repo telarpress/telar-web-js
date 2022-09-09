@@ -4,32 +4,34 @@ const profileRouter = express.Router();
 const handlers = require("../handlers");
 
 profileRouter.get("/profile/dto/id/:id", handlers.getProfileData);
-profileRouter.get("/profile", handlers.getProfile);
-profileRouter.get("/profile/:id", handlers.getProfileById);
 profileRouter.get("/profile/all", handlers.getProfiles);
-profileRouter.post("/profile/dto", handlers.setProfile);
-profileRouter.put("/profile/", handlers.updateProfile);
-
-
+profileRouter.get("/profile/:id", handlers.getProfileById);
 
 // Routers
-app.get("/profile/my",  handlers.readMyProfileHandle)
+profileRouter.get("/profile/my", handlers.readMyProfileHandle);
+profileRouter.get("/profile", handlers.queryUserProfileHandle);
+profileRouter.get("/profile/id/:userId", handlers.readProfileHandle);
+profileRouter.get("/profile/social/:name", handlers.getBySocialName);
 
+profileRouter.put("/profile/profile", handlers.updateProfileHandle); // With UserId From Profile
+profileRouter.put("/profile/last-seen", handlers.updateLastSeen);
+profileRouter.get("/profile/dto/id/:userId", handlers.readDtoProfileHandle);
+profileRouter.post("/profile/dto", handlers.createDtoProfileHandle);
 
-app.Get("/profile/", append(hmacCookieHandlers, handlers.QueryUserProfileHandle)...)
-app.Get("/profile/id/:userId", append(hmacCookieHandlers, handlers.ReadProfileHandle)...)
-app.Get("/profile/social/:name", append(hmacCookieHandlers, handlers.GetBySocialName)...)
-app.Post("/profile/index", authHMACMiddleware(false), handlers.InitProfileIndexHandle)
-app.Put("/profile/last-seen", authHMACMiddleware(false), handlers.UpdateLastSeen)
+profileRouter.put("/profile/", handlers.updateProfile); // With Token
+
+profileRouter.post("/profile/index", handlers.initProfileIndexHandle);
 
 // Invoke between functions and protected by HMAC
-app.Put("/profile/", authHMACMiddleware(false), handlers.UpdateProfileHandle)
-app.Get("/profile/dto/id/:userId", authHMACMiddleware(false), handlers.ReadDtoProfileHandle)
-app.Post("/profile/dto", authHMACMiddleware(false), handlers.CreateDtoProfileHandle)
-app.Post("/profile/dispatch", authHMACMiddleware(false), handlers.DispatchProfilesHandle)
-app.Post("/profile/dto/ids", authHMACMiddleware(false), handlers.GetProfileByIds)
-app.Put("/profile/follow/inc/:inc/:userId", authHMACMiddleware(false), handlers.IncreaseFollowCount)
-app.Put("/profile/follower/inc/:inc/:userId", authHMACMiddleware(false), handlers.IncreaseFollowerCount)
-
+profileRouter.post("/profile/dispatch", handlers.dispatchProfilesHandle);
+profileRouter.post("/profile/dto/ids", handlers.getProfileByIds);
+profileRouter.put(
+  "/profile/follow/inc/:inc/:userId",
+  handlers.increaseFollowCount
+);
+profileRouter.put(
+  "/profile/follower/inc/:inc/:userId",
+  handlers.increaseFollowerCount
+);
 
 module.exports = profileRouter;
