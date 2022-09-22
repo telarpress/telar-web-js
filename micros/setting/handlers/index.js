@@ -9,25 +9,24 @@ const log = require("../utils/errorLogger");
 
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {
-  // const token = req.cookies.token;
-  // if (!token) {
-  //   log.Error("[CreateUserSettingHandle] Can not get current user");
-  //   return res
-  //     .status(HttpStatusCode.Unauthorized)
-  //     .send(
-  //       new utils.ErrorHandler(
-  //         "setting.invalidCurrentUser",
-  //         "Can not get current user"
-  //       ).json()
-  //     );
-  // }
+  const token = req.cookies.token;
+  if (!token) {
+    log.Error("[CreateUserSettingHandle] Can not get current user");
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "setting.invalidCurrentUser",
+          "Can not get current user"
+        ).json()
+      );
+  }
 
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    // const currentUserId = await userSettingService.findProfileByAccessToken(
-    //   token
-    // );
-    currentUserId = "dd249310-853d-426f-a4a6-b0509b62507e";
+    const currentUserId = await userSettingService.findProfileByAccessToken(
+      token
+    );
     if (currentUserId == null || ownerUserId != currentUserId)
       res.status(HttpStatusCode.NotFound).end();
 
@@ -183,33 +182,37 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
 exports.getAllUserSetting = async function (req, res) {
   const token = req.cookies.token;
   if (!token) {
-    log.Error("GetProfileHandle: Get User Setting Problem");
+    log.Error("[GetAllUserSetting] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
         new utils.ErrorHandler(
-          "profile.missingGetProfile",
-          "Missing Get Profile"
+          "setting.invalidCurrentUser",
+          "Can not get current user"
         ).json()
       );
   }
   try {
-    const userSetting = await userSettingService.findProfileByAccessToken(
+    const currentUserId = await userSettingService.findProfileByAccessToken(
       token
     );
-    userSetting == null
-      ? res.status(HttpStatusCode.NotFound).end()
-      : res.status(HttpStatusCode.OK).send(userSetting).json().end();
+    const { userID } = req.body;
+    if (currentUserId == null || userID != currentUserId)
+      res.status(HttpStatusCode.NotFound).end();
+    const userSetting = await userSettingService.getAllUserSetting(
+      currentUserId
+    );
+    return await res.status(HttpStatusCode.OK).send(userSetting).json().end();
   } catch (error) {
     if (error == "TokenExpiredError: jwt expired")
       return res.redirect("/auth/login");
-    log.Error("ResetPassHandle: Find Profile Problem " + error);
+    log.Error("[GetAllUserSetting] " + error);
     return res
       .status(HttpStatusCode.InternalServerError)
       .send(
         new utils.ErrorHandler(
-          "auth.missingloginFind",
-          "Missing Find Profile"
+          "setting.getAllUserSetting",
+          "Can not get user settings!"
         ).json()
       );
   }

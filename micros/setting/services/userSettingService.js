@@ -12,8 +12,8 @@ exports.saveManyUserSetting = async function (
   settingOwnerUserId,
   settingList
 ) {
-  // const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  // if (decode.id != settingOwnerUserId) return Error("Error in Authentication");
+  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
+  if (decode.id != settingOwnerUserId) return Error("Error in Authentication");
 
   // TODO: Use  canonical Base64 UUID
   // const mUUID = MUUID.mode("canonical");
@@ -85,4 +85,22 @@ exports.findSettingByUserIds = async function (userIds, type, token) {
 exports.findProfileByAccessToken = async function (token) {
   const decode = jwt.verify(token, appConfig.ACCESS_TPK);
   return await UserProfile.findOne({ objectId: decode.id });
+};
+
+exports.getAllUserSetting = async function (userId) {
+  const userSetting = await UserSetting.find({ ownerUserId: userId });
+
+  let groupSettingsMap = [];
+  userSetting.forEach((setting) => {
+    let settingModel = new Object({
+      objectId: setting.objectId,
+      name: setting.name,
+      value: setting.value,
+      isSystem: setting.isSystem,
+    });
+    let type = [setting.type];
+    groupSettingsMap = groupSettingsMap.concat(type, settingModel);
+  });
+
+  return groupSettingsMap;
 };
