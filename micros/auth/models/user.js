@@ -2,22 +2,25 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const Joi = require("joi");
 
-const UserAuthSchema = new Schema({
-  objectId: { type: String, required: true },
-  username: { type: String, required: true, trim: true, unique: true },
-  password: { type: String, default: null },
-  access_token: { type: String, default: null },
-  emailVerified: { type: Boolean, default: false },
-  role: {
-    type: [String],
-    enum: ["user", "admin", "super_admin"],
-    default: ["user"],
+const UserAuthSchema = new Schema(
+  {
+    objectId: { type: String, required: true },
+    username: { type: String, required: true, trim: true, unique: true },
+    password: { type: String, default: null },
+    access_token: { type: String, default: null },
+    emailVerified: { type: Boolean, default: false },
+    role: {
+      type: [String],
+      enum: ["user", "admin", "super_admin"],
+      default: ["user"],
+    },
+    phoneVerified: { type: Boolean, default: false },
+    token_expires: { type: String, default: Date, expires: 1 * 600 }, // 10 min
+    created_date: { type: Date, default: Date.now },
+    last_updated: { type: Date, default: Date.now },
   },
-  phoneVerified: { type: Boolean, default: false },
-  token_expires: { type: String, default: Date, expires: 1 * 600 }, // 10 min
-  created_date: { type: Date, default: Date.now },
-  last_updated: { type: Date, default: Date.now },
-});
+  { collection: "userAuth" }
+);
 
 const UserAuth = mongoose.model("UserAuthSchema", UserAuthSchema);
 
