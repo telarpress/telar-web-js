@@ -24,9 +24,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findProfileByAccessToken(
-      token
-    );
+    const currentUserId = await userSettingService.findIdByAccessToken(token);
     if (currentUserId == null || ownerUserId != currentUserId)
       res.status(HttpStatusCode.NotFound).end();
 
@@ -71,9 +69,7 @@ exports.updateUserSettingHandle = async function (req, res) {
 
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findProfileByAccessToken(
-      token
-    );
+    const currentUserId = await userSettingService.findIdByAccessToken(token);
 
     if (currentUserId == null || ownerUserId != currentUserId) {
       log.Error("[CreateUserSettingHandle] Can not get current user");
@@ -158,14 +154,12 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
 
   try {
     const userID = req.body;
-    const currentUserId = await userSettingService.findProfileByAccessToken(
-      token
-    );
+    const currentUserId = await userSettingService.findIdByAccessToken(token);
 
     if (currentUserId == null || userID != currentUserId)
       res.status(HttpStatusCode.NotFound).end();
 
-    await userSettingService.deleteUserSettingByOwnerUserId(currentUserId);
+    await userSettingService.deleteUserSettingByOwnerUserId(userID);
   } catch (error) {
     log.Error("Delete UserSetting Error " + error);
     return res
@@ -193,12 +187,24 @@ exports.getAllUserSetting = async function (req, res) {
       );
   }
   try {
-    const currentUserId = await userSettingService.findProfileByAccessToken(
-      token
-    );
-    const { userID } = req.body;
+    const currentUserId = await userSettingService.findIdByAccessToken(token);
+
     if (currentUserId == null || userID != currentUserId)
-      res.status(HttpStatusCode.NotFound).end();
+      res.status(HttpStatusCode.Unauthorized).end();
+
+    const settingType = req.params.type;
+    if (!settingType) {
+      log.Error("Error setting type can not be empty.");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "setting.settingTypeRquired",
+            "Error setting type can not be empty.!"
+          ).json()
+        );
+    }
+
     const userSetting = await userSettingService.getAllUserSetting(
       currentUserId
     );
@@ -221,13 +227,13 @@ exports.getAllUserSetting = async function (req, res) {
 exports.getSettingByUserIds = async function (req, res) {
   const token = req.cookies.token;
   if (!token) {
-    log.Error("GetProfileHandle: Get Profile Problem");
+    log.Error("[GetSettingByUserIds] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
         new utils.ErrorHandler(
-          "profile.missingGetProfile",
-          "Missing Get Profile"
+          "setting.invalidCurrentUser",
+          "Can not get current user"
         ).json()
       );
   }

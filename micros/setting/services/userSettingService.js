@@ -82,14 +82,13 @@ exports.findSettingByUserIds = async function (userIds, type, token) {
   });
 };
 
-exports.findProfileByAccessToken = async function (token) {
+exports.findIdByAccessToken = async function (token) {
   const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return await UserProfile.findOne({ objectId: decode.id });
+  return decode.id;
 };
 
 exports.getAllUserSetting = async function (userId) {
   const userSetting = await UserSetting.find({ ownerUserId: userId });
-
   let groupSettingsMap = [];
   userSetting.forEach((setting) => {
     let settingModel = new Object({
@@ -101,6 +100,14 @@ exports.getAllUserSetting = async function (userId) {
     let type = [setting.type];
     groupSettingsMap = groupSettingsMap.concat(type, settingModel);
   });
+  console.log(userSetting);
+  let groupSettingsModel = new Object({
+    Type: userSetting[0].type,
+    CreatedDate: userSetting[0].createdDate,
+    OwnerUserId: userSetting[0].ownerUserId,
+    List: groupSettingsMap,
+  });
+  console.log(groupSettingsModel);
 
-  return groupSettingsMap;
+  return groupSettingsModel;
 };
