@@ -25,8 +25,17 @@ exports.createSettingGroupHandle = async function (req, res) {
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
     const currentUserId = await userSettingService.findIdByAccessToken(token);
-    if (currentUserId == null || ownerUserId != currentUserId)
-      res.status(HttpStatusCode.NotFound).end();
+    if (currentUserId == null || ownerUserId != currentUserId) {
+      log.Error("[CreateUserSettingHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "setting.invalidCurrentUser",
+            "Can not get current user"
+          ).json()
+        );
+    }
 
     await userSettingService.saveManyUserSetting(
       type,
@@ -56,7 +65,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 exports.updateUserSettingHandle = async function (req, res) {
   const token = req.cookies.token;
   if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
+    log.Error("[UpdateUserSettingHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
@@ -72,7 +81,7 @@ exports.updateUserSettingHandle = async function (req, res) {
     const currentUserId = await userSettingService.findIdByAccessToken(token);
 
     if (currentUserId == null || ownerUserId != currentUserId) {
-      log.Error("[CreateUserSettingHandle] Can not get current user");
+      log.Error("[UpdateUserSettingHandle] Can not get current user");
       return res
         .status(HttpStatusCode.Unauthorized)
         .send(

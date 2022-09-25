@@ -128,6 +128,7 @@
     "smtp_email_port": "2525",
     "write_timeout": "10s",
     "cookie_root_domain": ".telar.dev",
+    "header_hmac_authenticate": "X-Cloud-Signature",
     "gateway": "https://social.faas.telar.dev",
     "internal_gateway": "http://gateway.openfaas:8080/function",
     "origin": "https://social.faas.telar.dev, https://social.telar.dev, https://auth.telar.dev",

@@ -43,7 +43,7 @@ exports.appConfig = {
   // GATEWAY:config.environment.gateway,
   // INTERNAL_GATEWAY:config.environment.internal_gateway,
   // ORIGIN:config.environment.origin,
-  // WEBSOCKET_SERVER_URL:config.environment.websocket_server_url,
+  // WEBSOCKET_SERVER_URL: config.environment.websocket_server_url,
   // DEBUG:config.environment.debug,
 
   Node_ENV: process.env.Node_ENV,
