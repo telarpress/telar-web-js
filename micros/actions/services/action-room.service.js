@@ -5,24 +5,13 @@ const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
 // const MUUID = require("uuid-mongodb");
 
-exports.findIdByAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return decode.id;
-};
-
 // SaveActionRoom save the actionRoom
 exports.saveActionRoom = async function (actionRoom) {
-  let uuid = uuidv4();
-  let createdDateValue;
-  //let uuid = MUUID.v1();
-  if (settingCreationDate == 0) {
-  } else {
-    createdDateValue = settingCreationDate;
-  }
-  if (actionRoom.createdDate == 0) {
+  if (actionRoom.createdDate == 0)
     actionRoom.createdDate = Math.floor(Date.now() / 1000);
-  }
-  return await ActionRoom.Save(actionRoom);
+
+  const actionRoomModel = new ActionRoom(actionRoom);
+  return await actionRoomModel.save();
 };
 
 // UpdateActionRoom update the actionRoom
@@ -40,47 +29,70 @@ exports.setAccessKey = async function (userId) {
     const filter = {
       OwnerUserId: userId,
     };
-    let uuid = uuidv4();
-    const accessKey = uuid;
-    const updateOperator = { accessKey: accessKey.String() };
-    const options = { upsert: true };
-    await ActionRoom.updateOne(filter, updateOperator, options);
-    return accessKey.String();
+    const accessKey = uuidv4();
+    const updateOperator = { accessKey: accessKey.toString() };
+    await ActionRoom.updateOne(filter, { $set: updateOperator });
+    return accessKey;
   } catch (updateErr) {
     return updateErr;
   }
 };
 // DeleteActionRoom delete actionRoom by ownerUserId and actionRoomId
-exports.DeleteActionRoomByOwner = async function (OwnerUserId, ObjectId) {
+exports.deleteActionRoomByOwner = async function (OwnerUserId, actionRoomUUID) {
   try {
-    // const actionRoomUUID = uuidv4().FromString(ObjectId);
-    const actionRoomUUID = uuidv4();
     const filter = {
       objectId: actionRoomUUID,
       ownerUserId: OwnerUserId,
     };
-    return await await ActionRoom.deleteOne(filter);
+    return await ActionRoom.deleteOne(filter);
   } catch (error) {
     return updateErr;
   }
 };
 
 // GetAccessKey increment score of post
-exports.getAccessKey = async function (OwnerUserId) {
+exports.getAccessKey = async function (ownerUserId) {
   const filter = {
-    ownerUserId: OwnerUserId,
+    ownerUserId: ownerUserId,
   };
-  const foundActionRoom = ActionRoom.findOne(filter);
-
-  return await foundActionRoom.accessKey;
+  return await ActionRoom.findOne(filter);
 };
 
 // VerifyAccessKey increment score of post
 exports.verifyAccessKey = async function (OwnerUserId, accessKey) {
-  const filter = {
-    ownerUserId: OwnerUserId,
-    accessKey: accessKey,
-  };
-  const foundActionRoom = ActionRoom.findOne(filter);
-  return foundActionRoom.objectId ? true : false;
+  return (
+    await ActionRoom.findOne({
+      ownerUserId: OwnerUserId,
+      accessKey: accessKey,
+    })
+  ).objectId
+    ? true
+    : false;
 };
+
+// // SaveManyUserSetting save the userSetting
+// exports.saveManyUserSetting = async function (
+//   type,
+//   creationDate,
+//   ownerUserId,
+//   list
+// ) {
+//   const filter = {
+//     ownerUserId: OwnerUserId,
+//     accessKey: accessKey,
+//   };
+//   const foundActionRoom = ActionRoom.findOne(filter);
+//   return foundActionRoom.objectId ? true : false;
+// };
+
+// await actionRoomService.updateUserSettingsById(userSetting);
+
+// await actionRoomService.deleteUserSettingByOwnerUserId(userID);
+
+// const userSetting = await actionRoomService.getAllUserSetting(currentUserId);
+
+// const foundUsersSetting = await actionRoomService.findSettingByUserIds(
+//   userIds,
+//   type,
+//   token
+// );

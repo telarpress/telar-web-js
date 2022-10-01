@@ -1,11 +1,8 @@
 const userSettingService = require("../services/userSettingService");
 const utils = require("../utils/error-handler");
 const { HttpStatusCode } = require("../utils/HttpStatusCode");
-// const hmac = require("../utils/hmac");
-// const { appConfig } = require("../config");
+
 const log = require("../utils/errorLogger");
-// const { validate: uuidValidate } = require("uuid");
-// const { default: axios } = require("axios");
 
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {

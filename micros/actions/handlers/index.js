@@ -1,40 +1,28 @@
 const actionRoomService = require("../services/action-room.service");
 const utils = require("../utils/error-handler");
 const { HttpStatusCode } = require("../utils/HttpStatusCode");
-// const hmac = require("../utils/hmac");
-// const { appConfig } = require("../config");
 const log = require("../utils/errorLogger");
+// const hmac = require("../utils/hmac");
 const { appConfig } = require("../config");
 // const { validate: uuidValidate } = require("uuid");
-// const { default: axios } = require("axios");
+const { default: axios } = require("axios");
 
 // CreateActionRoomHandle handle create a new actionRoom
 exports.createActionRoomHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateActionRoomHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
-    log.Error("[CreateActionRoomHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
   try {
+    const currentUserId = res.locals.user.token;
+    if (!currentUserId || currentUserId == null) {
+      log.Error("[CreateActionRoomHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "actionRoom.invalidCurrentUser",
+            "Can not get current user"
+          ).json()
+        );
+    }
+
     const model = req.body;
     if (model == null) {
       log.Error("[CreateActionRoomHandle] Parse CreateActionRoomModel Error");
@@ -54,7 +42,7 @@ exports.createActionRoomHandle = async function (req, res) {
       privateKey: model.privateKey,
       accessKey: model.accessKey,
       status: model.status,
-      createdDate: model.createdDate,
+      created_date: model.createdDate,
     });
 
     const createActionRoom = await actionRoomService.saveActionRoom(
@@ -75,9 +63,9 @@ exports.createActionRoomHandle = async function (req, res) {
 };
 
 // DispatchHandle handle create a new actionRoom
-exports.dispatchHandle = async function () {
+exports.dispatchHandle = async function (req, res) {
   // params from /actions/dispatch/:roomId
-  const actionRoomId = req.Params.roomId;
+  const actionRoomId = req.params.roomId;
   if (actionRoomId == "") {
     log.Error("ActionRoom Id is required!");
     return res
@@ -89,9 +77,9 @@ exports.dispatchHandle = async function () {
         ).json()
       );
   }
-  const bodyReader = bytes.NewBuffer(req.body);
+  const bodyReader = req.body;
   const URL = `${appConfig.WEBSOCKET_SERVER_URL}/api/dispatch/${actionRoomId}`;
-  log.Info(` Dispatch URL: ${URL}`);
+  log.Error(` Dispatch URL: ${URL}`);
   try {
     let axiosConfig = {
       headers: {
@@ -102,7 +90,7 @@ exports.dispatchHandle = async function () {
     const xCloudSignature = appConfig.HEADER_HMAC_AUTHENTICATE;
     axiosConfig.headers[appConfig.HMAC_HEADER_NAME] = xCloudSignature;
     axiosConfig.headers["ORIGIN"] = appConfig.GATEWAY;
-    const httpReq = axios.post(URL, bodyReader, axiosConfig);
+    const httpReq = await axios.post(URL, bodyReader, axiosConfig);
 
     if (!httpReq) {
       console.log(`callAPIWithHMAC ${httpReq}`);
@@ -125,21 +113,8 @@ exports.dispatchHandle = async function () {
 
 // UpdateActionRoomHandle handle create a new actionRoom
 exports.updateActionRoomHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[UpdateActionRoomHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
+  const currentUserId = res.locals.user.token;
+  if (!currentUserId || currentUserId == null) {
     log.Error("[UpdateActionRoomHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -193,21 +168,8 @@ exports.updateActionRoomHandle = async function (req, res) {
 
 // SetAccessKeyHandle handle create a new actionRoom
 exports.setAccessKeyHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[SetAccessKeyHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
+  const currentUserId = res.locals.user.token;
+  if (!currentUserId || currentUserId == null) {
     log.Error("[SetAccessKeyHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -219,7 +181,7 @@ exports.setAccessKeyHandle = async function (req, res) {
       );
   }
   try {
-    const accessKey = actionRoomService.setAccessKey(currentUserId);
+    const accessKey = await actionRoomService.setAccessKey(currentUserId);
     return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
   } catch (error) {
     log.Error("Set access key Error " + error);
@@ -236,7 +198,7 @@ exports.setAccessKeyHandle = async function (req, res) {
 // DeleteActionRoomHandle handle delete a ActionRoom
 exports.deleteActionRoomHandle = async function (req, res) {
   // params from /actions/room/:roomId
-  const actionRoomId = req.Params.roomId;
+  const actionRoomId = req.params.roomId;
   if (actionRoomId == "") {
     log.Error("ActionRoom Id is required!");
     return res
@@ -249,21 +211,8 @@ exports.deleteActionRoomHandle = async function (req, res) {
       );
   }
 
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[SetAccessKeyHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
+  const currentUserId = res.locals.user.token;
+  if (!currentUserId || currentUserId == null) {
     log.Error("[DeleteActionRoomHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -275,11 +224,13 @@ exports.deleteActionRoomHandle = async function (req, res) {
       );
   }
   try {
-    const accessKey = actionRoomService.deleteActionRoomByOwner(
+    const deleteAction = await actionRoomService.deleteActionRoomByOwner(
       currentUserId,
       actionRoomId
     );
-    return res.status(HttpStatusCode.OK);
+    if (deleteAction.deletedCount == 0)
+      return res.status(HttpStatusCode.NotFound).end();
+    return res.status(HttpStatusCode.OK).end();
   } catch (error) {
     log.Error("Delete ActionRoom Error " + error);
     return res
@@ -295,21 +246,8 @@ exports.deleteActionRoomHandle = async function (req, res) {
 
 // GetAccessKeyHandle handle get access key
 exports.getAccessKeyHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetAccessKeyHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
+  const currentUserId = res.locals.user.token;
+  if (!currentUserId || currentUserId == null) {
     log.Error("[GetAccessKeyHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -322,7 +260,7 @@ exports.getAccessKeyHandle = async function (req, res) {
   }
 
   try {
-    const accessKey = actionRoomService.getAccessKey(currentUserId);
+    const accessKey = await actionRoomService.getAccessKey(currentUserId);
     return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
   } catch (error) {
     log.Error("[actionRoomService.GetAccessKey] " + currentUserId + error);
@@ -352,21 +290,8 @@ exports.verifyAccessKeyHandle = async function (req, res) {
       );
   }
 
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[VerifyAccessKeyHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "actionRoom.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const currentUserId = await actionRoomService.findIdByAccessToken(token);
-  if (currentUserId == null || ownerUserId != currentUserId) {
+  const currentUserId = res.locals.user.token;
+  if (!currentUserId || currentUserId == null) {
     log.Error("[VerifyAccessKeyHandle] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -379,10 +304,11 @@ exports.verifyAccessKeyHandle = async function (req, res) {
   }
 
   try {
-    const isVerified = actionRoomService.verifyAccessKey(
+    const isVerified = await actionRoomService.verifyAccessKey(
       currentUserId,
       model.accessKey
     );
+    console.log(isVerified);
     return res
       .status(HttpStatusCode.OK)
       .send({ isVerified: isVerified })
@@ -395,274 +321,6 @@ exports.verifyAccessKeyHandle = async function (req, res) {
         new utils.ErrorHandler(
           "actionRoom.actionRoomService",
           "Error happend while verifying access key!"
-        ).json()
-      );
-  }
-};
-
-// CreateSettingGroupHandle handle create a new userSetting
-exports.createSettingGroupHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateSettingGroupHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  try {
-    const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-    if (currentUserId == null || ownerUserId != currentUserId) {
-      log.Error("[CreateSettingGroupHandle] Can not get current user");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "setting.invalidCurrentUser",
-            "Can not get current user"
-          ).json()
-        );
-    }
-
-    await userSettingService.saveManyUserSetting(
-      type,
-      creationDate,
-      ownerUserId,
-      list
-    );
-
-    return await res
-      .status(HttpStatusCode.OK)
-      .send({ objectId: currentUserId })
-      .json();
-  } catch (error) {
-    log.Error("Save UserSetting Error " + error);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "setting.saveUserSetting",
-          "Error happened while saving UserSetting!"
-        ).json()
-      );
-  }
-};
-
-// UpdateUserSettingHandle handle create a new userSetting
-exports.updateUserSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  try {
-    const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-
-    if (currentUserId == null || ownerUserId != currentUserId) {
-      log.Error("[UpdateUserSettingHandle] Can not get current user");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "setting.invalidCurrentUser",
-            "Can not get current user"
-          ).json()
-        );
-    }
-    let userSetting = [];
-    let settingList = [];
-    settingList = list;
-    settingList.forEach((setting) => {
-      let createdDateValue;
-      if (creationDate == 0) {
-        //let uuid = MUUID.v1();
-        createdDateValue = Math.floor(Date.now() / 1000);
-      } else {
-        createdDateValue = creationDate;
-      }
-      let newUserSetting = new Object({
-        objectId: setting.objectId,
-        ownerUserId: ownerUserId,
-        createdDate: createdDateValue,
-        name: setting.name,
-        value: setting.value,
-        type: type,
-        isSystem: setting.isSystem,
-        // objectId: uuid,
-        // ownerUserId: MUUID.from(settingOwnerUserId),
-      });
-      userSetting = userSetting.concat(newUserSetting);
-    });
-    if (!userSetting.length > 0) {
-      log.Error("No setting added for update Error ");
-      return res
-        .status(HttpStatusCode.InternalServerError)
-        .send(
-          new utils.ErrorHandler(
-            "setting.noSettingForUpdateg",
-            "Can not find setting for update!"
-          ).json()
-        );
-    }
-
-    await userSettingService.updateUserSettingsById(userSetting);
-
-    return await res
-      .status(HttpStatusCode.OK)
-      .send({ objectId: currentUserId })
-      .json();
-  } catch (error) {
-    log.Error("Update UserSetting Error " + error);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "setting.updateUserSetting",
-          "Can not update user setting!"
-        ).json()
-      );
-  }
-};
-
-// DeleteUserAllSettingHandle handle delete all userSetting
-exports.deleteUserAllSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  try {
-    const userID = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-
-    if (currentUserId == null || userID != currentUserId)
-      res.status(HttpStatusCode.NotFound).end();
-
-    await userSettingService.deleteUserSettingByOwnerUserId(userID);
-  } catch (error) {
-    log.Error("Delete UserSetting Error " + error);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "setting.deleteUserSetting",
-          "Error happened while removing UserSetting!"
-        ).json()
-      );
-  }
-  return res.status(HttpStatusCode.OK).send({ objectId: currentUserId }).json();
-};
-exports.getAllUserSetting = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetAllUserSetting] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-  try {
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-
-    if (currentUserId == null || userID != currentUserId)
-      res.status(HttpStatusCode.Unauthorized).end();
-
-    const settingType = req.params.type;
-    if (!settingType) {
-      log.Error("Error setting type can not be empty.");
-      return res
-        .status(HttpStatusCode.BadRequest)
-        .send(
-          new utils.ErrorHandler(
-            "setting.settingTypeRquired",
-            "Error setting type can not be empty.!"
-          ).json()
-        );
-    }
-
-    const userSetting = await userSettingService.getAllUserSetting(
-      currentUserId
-    );
-    return await res.status(HttpStatusCode.OK).send(userSetting).json().end();
-  } catch (error) {
-    if (error == "TokenExpiredError: jwt expired")
-      return res.redirect("/auth/login");
-    log.Error("[GetAllUserSetting] " + error);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "setting.getAllUserSetting",
-          "Can not get user settings!"
-        ).json()
-      );
-  }
-};
-// GetSettingByUserIds a function invocation to setting by user ids
-exports.getSettingByUserIds = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetSettingByUserIds] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
-  const { userIds, type } = req.body;
-
-  try {
-    const foundUsersSetting = await userSettingService.findSettingByUserIds(
-      userIds,
-      type,
-      token
-    );
-    let mappedSetting = {};
-    await foundUsersSetting.forEach((setting) => {
-      let key = `${setting.ownerUserId}:${setting.type}:${setting.name}`;
-      console.log(key);
-      mappedSetting[key] = setting.value;
-    });
-    return await res.status(HttpStatusCode.OK).send(mappedSetting).json();
-  } catch (error) {
-    log.Error("[userSettingService.FindSettingByUserIds] " + error);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "userSettingService.findUserSetting",
-          "Can not find users settings by ids!"
         ).json()
       );
   }
