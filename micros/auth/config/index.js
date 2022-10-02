@@ -47,7 +47,7 @@ exports.appConfig = {
   // DEBUG:config.environment.debug,
 
   Node_ENV: process.env.Node_ENV,
-  DB_URI: process.env.DB_URI,
+  DB_URI: process.env.MONGO_HOST,
   RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY, //reCAPTCHA type:3 - for communication between your site and reCAPTCHA
   GITHUB_CLIENT_SECRET: process.env.GIT_CLIENT_SECRET,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
@@ -57,8 +57,8 @@ exports.appConfig = {
   SMTP_EMAIL_USER: process.env.EMAIL_USER,
   SMTP_EMAIL_PASSWORD: process.env.EMAIL_PASS,
   SESSION_SECRET_KEY: process.env.SESSION_SECRET_KEY,
-  HMAC_SECRET_KEY: process.env.HMAC_SECRET_KEY,
-  HMAC_HEADER_NAME: process.env.HMAC_HEADER_NAME,
+  HMAC_NAME: config.environment.hmac_header_name,
+  HMAC_KEY: process.env.HMAC_KEY,
 };
 // decodeBase64 Decode base64 string
 function decodeBase64(encodedStrings) {

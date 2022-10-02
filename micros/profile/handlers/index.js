@@ -329,10 +329,10 @@ exports.getProfileById = async function (req, res) {
 
 // POST /profile
 exports.createDtoProfileHandle = async (req, res) => {
-  let hash = req.header(appConfig.HMAC_HEADER_NAME);
+  let hash = req.header(appConfig.HMAC_NAME);
   const HMAC_Validation = await hmac.validate(
     JSON.stringify(req.body),
-    appConfig.HMAC_SECRET_KEY,
+    appConfig.HMAC_KEY,
     hash
   );
 

@@ -87,8 +87,8 @@ exports.dispatchHandle = async function (req, res) {
         "user-agent": "anyToActionRoom",
       },
     };
-    const xCloudSignature = appConfig.HEADER_HMAC_AUTHENTICATE;
-    axiosConfig.headers[appConfig.HMAC_HEADER_NAME] = xCloudSignature;
+    const xCloudSignature = appConfig.HMAC_NAME;
+    axiosConfig.headers[appConfig.HMAC_NAME] = xCloudSignature;
     axiosConfig.headers["ORIGIN"] = appConfig.GATEWAY;
     const httpReq = await axios.post(URL, bodyReader, axiosConfig);
 
