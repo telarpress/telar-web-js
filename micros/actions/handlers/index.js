@@ -1,7 +1,7 @@
 const actionRoomService = require("../services/action-room.service");
-const utils = require("../utils/error-handler");
-const { HttpStatusCode } = require("../utils/HttpStatusCode");
-const log = require("../utils/errorLogger");
+const utils = require("../../../core/utils/error-handler");
+const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
+const log = require("../../../core/utils/errorLogger");
 // const hmac = require("../utils/hmac");
 const { appConfig } = require("../config");
 // const { validate: uuidValidate } = require("uuid");
