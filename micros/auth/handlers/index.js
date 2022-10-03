@@ -15,9 +15,9 @@ const {
 } = require("../utils/validationSchema");
 const generateTokens = require("../utils/generateTokens");
 
-const log = require("../utils/errorLogger");
-const utils = require("../utils/error-handler");
-const { HttpStatusCode } = require("../utils/HttpStatusCode");
+const log = require("../../../core/utils/errorLogger");
+const utils = require("../../../core/utils/error-handler");
+const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 
 // SignupPageHandler creates a handler for logging in
 exports.signupPageHandler = async (req, res) => {

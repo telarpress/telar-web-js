@@ -1,8 +1,8 @@
 const userSettingService = require("../services/userSettingService");
-const utils = require("../utils/error-handler");
-const { HttpStatusCode } = require("../utils/HttpStatusCode");
+const utils = require("../../../core/utils/error-handler");
+const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 
-const log = require("../utils/errorLogger");
+const log = require("../../../core/utils/errorLogger");
 
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {

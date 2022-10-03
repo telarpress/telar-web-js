@@ -3,9 +3,9 @@
 // const validate_setData = ajv.getSchema("setData");
 const hmac = require("../utils/hmac");
 const { appConfig } = require("../config");
-const log = require("../utils/errorLogger");
-const utils = require("../utils/error-handler");
-const { HttpStatusCode } = require("../utils/HttpStatusCode");
+const log = require("../../../core/utils/errorLogger");
+const utils = require("../../../core/utils/error-handler");
+const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 const profileService = require("../services/profile.service");
 const { validate: uuidValidate } = require("uuid");
 const { default: axios } = require("axios");

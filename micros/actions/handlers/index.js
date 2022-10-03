@@ -24,7 +24,7 @@ exports.createActionRoomHandle = async function (req, res) {
     }
 
     const model = req.body;
-    if (model == null) {
+    if (!model) {
       log.Error("[CreateActionRoomHandle] Parse CreateActionRoomModel Error");
       return res
         .status(HttpStatusCode.BadRequest)
@@ -128,7 +128,7 @@ exports.updateActionRoomHandle = async function (req, res) {
 
   try {
     const model = req.body;
-    if (model == null) {
+    if (!model) {
       log.Error("[UpdateActionRoomHandle] Parse ActionRoomModel Error");
       return res
         .status(HttpStatusCode.BadRequest)
@@ -278,7 +278,7 @@ exports.getAccessKeyHandle = async function (req, res) {
 // VerifyAccessKeyHandle handle verify access key
 exports.verifyAccessKeyHandle = async function (req, res) {
   const model = req.body;
-  if (model == null) {
+  if (!model) {
     log.Error("[VerifyAccessKeyHandle] Parse ActionVerifyModel Error");
     return res
       .status(HttpStatusCode.BadRequest)
