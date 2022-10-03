@@ -2,45 +2,50 @@ const express = require("express");
 const actionsRouter = express.Router();
 
 const {
-  authMiddleware,
+  authCookieMiddleware,
 } = require("../../../core/middleware/authcookie/authcookie");
+
+const {
+  authHMACMiddleware,
+} = require("../../../core/middleware/authHMAC/authHMAC");
+
 const handlers = require("../handlers");
 
 // Router
 actionsRouter.post(
   "/actions/room",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.createActionRoomHandle
 );
 
 actionsRouter.put(
   "/actions/room",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.updateActionRoomHandle
 );
 actionsRouter.get(
   "/actions/room/access-key",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.getAccessKeyHandle
 );
 actionsRouter.put(
   "/actions/room/access-key",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.setAccessKeyHandle
 );
 actionsRouter.post(
   "/actions/room/verify",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.verifyAccessKeyHandle
 );
 actionsRouter.delete(
   "/actions/room/:roomId",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.deleteActionRoomHandle
 );
 actionsRouter.post(
   "/actions/dispatch/:roomId",
-  authMiddleware,
+  authCookieMiddleware,
   handlers.dispatchHandle
 );
 

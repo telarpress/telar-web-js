@@ -69,30 +69,3 @@ exports.verifyAccessKey = async function (OwnerUserId, accessKey) {
     ? true
     : false;
 };
-
-// // SaveManyUserSetting save the userSetting
-// exports.saveManyUserSetting = async function (
-//   type,
-//   creationDate,
-//   ownerUserId,
-//   list
-// ) {
-//   const filter = {
-//     ownerUserId: OwnerUserId,
-//     accessKey: accessKey,
-//   };
-//   const foundActionRoom = ActionRoom.findOne(filter);
-//   return foundActionRoom.objectId ? true : false;
-// };
-
-// await actionRoomService.updateUserSettingsById(userSetting);
-
-// await actionRoomService.deleteUserSettingByOwnerUserId(userID);
-
-// const userSetting = await actionRoomService.getAllUserSetting(currentUserId);
-
-// const foundUsersSetting = await actionRoomService.findSettingByUserIds(
-//   userIds,
-//   type,
-//   token
-// );
