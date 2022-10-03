@@ -88,7 +88,8 @@
         "exec_timeout": "180",
         "write_timeout": "180",
         "read_timeout": "180",
-        "write_debug": "true"
+        "write_debug": "true",
+        "proxy_balancer": "http://localhost:9090"
       }
     },
     "user_rels": {
@@ -128,10 +129,12 @@
     "smtp_email_port": "2525",
     "write_timeout": "10s",
     "cookie_root_domain": ".telar.dev",
+    "hmac_header_name": "X-Cloud-Signature",
     "gateway": "https://social.faas.telar.dev",
     "internal_gateway": "http://gateway.openfaas:8080/function",
     "origin": "https://social.faas.telar.dev, https://social.telar.dev, https://auth.telar.dev",
     "websocket_server_url": "https://telarpress-websocket.herokuapp.com",
-    "debug": true
+    "debug": true,
+    "secret_source": "env"
   }
 }

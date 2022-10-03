@@ -7,6 +7,8 @@ exports.appConfig = {
   DB_TYPE: config.environment.db_type,
   DB_URI: process.env.MONGO_HOST,
   ACCESS_TPK: process.env.ACCESS_TOKEN_PRIVATE_KEY,
+  WEBSOCKET_SERVER_URL: config.environment.websocket_server_url,
+  GATEWAY: config.environment.gateway,
   HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
 };

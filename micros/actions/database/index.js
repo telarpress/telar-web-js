@@ -1,7 +1,7 @@
 const { appConfig } = require("../config");
 const mongoose = require("mongoose");
-const log = require("../utils/errorLogger");
-const utils = require("../utils/error-handler");
+const log = require("../../../core/utils/errorLogger");
+const utils = require("../../../core/utils/error-handler");
 
 exports.connect = async function () {
   let connect;

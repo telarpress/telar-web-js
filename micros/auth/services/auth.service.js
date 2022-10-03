@@ -77,10 +77,7 @@ exports.CreateEmailVerficationToken = async function (userVerification) {
 };
 
 exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
-  const hashData = GateKeeper.sign(
-    JSON.stringify(json),
-    appConfig.HMAC_SECRET_KEY
-  );
+  const hashData = GateKeeper.sign(JSON.stringify(json), appConfig.HMAC_KEY);
 
   console.log(
     "[INFO][HTTP CALL] callAPIWithHMAC: ",
@@ -95,7 +92,7 @@ exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
       "user-agent": "authToProfiles",
     },
   };
-  axiosConfig.headers[appConfig.HMAC_HEADER_NAME] = `${hashData.toString()}`;
+  axiosConfig.headers[appConfig.HMAC_NAME] = `${hashData.toString()}`;
   const getProfile = await axios.post(
     "http://localhost/profile/dto/",
     json,
