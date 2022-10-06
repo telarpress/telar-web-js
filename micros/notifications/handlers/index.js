@@ -538,26 +538,11 @@ exports.getNotificationsByUserIdHandle = async function (req, res) {
         );
     }
 
-    const query = {
-      search: "",
-      page: 0,
-      notInclude: {},
-    };
-
-    if (!parser.QueryParser(req.body, query)) {
-      log.Error("[GetNotificationsByUserIdHandle] QueryParser %s", err.Error());
-      return c
-        .Status(http.StatusBadRequest)
-        .JSON(
-          utils.Error("queryParser", "Error happened while parsing query!")
-        );
-    }
-
     const notificationList = notificationService.getNotificationByUserId(
       currentUserId,
       "created_date",
-      query.Page,
-      query.Limit
+      req.body.page,
+      req.body.limit
     );
 
     return res.send(notificationList);

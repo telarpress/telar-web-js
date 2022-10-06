@@ -247,29 +247,16 @@ exports.getNotificationByUserId = async function (userId, sortBy, page, limit) {
   };
 
   try {
-    const result = findNotificationList(filter, limit, skip, sortMap);
+    return await findNotificationList(filter, limit, skip, sortMap);
   } catch (error) {
     return error;
   }
-  return true;
 };
 
 // FindNotificationList get all notifications by filter
-function findNotificationList(filter, limit, skip, sortMap) {
+async function findNotificationList(filter, limit, skip, sortMap) {
   try {
-    const result = Notification.find(filter, limit, skip, sort);
-
-    let notificationList = [];
-    result.forEach((notification) => {
-      // for result.Next() {
-      //   let notification dto.Notification
-      //   errDecode := result.Decode(&notification)
-      //   if errDecode != nil {
-      //     return nil, fmt.Errorf("Error docoding on dto.Notification")
-      //   }
-      notificationList.push(notification);
-    });
-    return notificationList;
+    return Notification.find(filter).sort(sortMap).limit(limit).skip(skip);
   } catch (error) {
     return error;
   }

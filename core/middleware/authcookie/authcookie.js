@@ -4,8 +4,7 @@ const utils = require("../../../core/utils/error-handler");
 const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 const log = require("../../../core/utils/errorLogger");
 
-exports.authCookieMiddleware = (req, res, next) => {
-
+exports.authCookie = (req, res, next) => {
   if (!req.cookies.token) {
     log.Error("[authCookieMiddleware] Token is empty");
     return res
@@ -21,6 +20,7 @@ exports.authCookieMiddleware = (req, res, next) => {
   try {
     const decode = jwt.verify(req.cookies.token, appConfig.ACCESS_TPK);
     res.locals.user = { token: decode.id };
+    next();
   } catch (error) {
     log.Error("[authCookieMiddleware] Can not verify current user" + error);
     return res
@@ -32,5 +32,4 @@ exports.authCookieMiddleware = (req, res, next) => {
         ).json()
       );
   }
-  next();
 };

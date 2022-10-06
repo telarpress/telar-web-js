@@ -1,60 +1,65 @@
 const express = require("express");
 const notificationsRouter = express.Router();
-
+const { appConfig } = require("../config");
 const {
-  authCookieMiddleware,
+  authCookie,
 } = require("../../../core/middleware/authcookie/authcookie");
 
-const {
-  authHMACMiddleware,
-} = require("../../../core/middleware/authHMAC/index");
+const { authHMAC } = require("../../../core/middleware/authHMAC/");
+
+const hmacCookieHandlers = () => (req, res, next) => {
+  if (req.get(appConfig.HMAC_NAME) !== undefined) {
+    return authHMAC(req, res, next);
+  }
+  return authCookie(req, res, next);
+};
 
 const handlers = require("../handlers");
 
 // Router
 notificationsRouter.post(
   "/notifications/check",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.checkNotifyEmailHandle
 );
 notificationsRouter.post(
   "/notifications/",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.createNotificationHandle
 );
 notificationsRouter.put(
   "/notifications/",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.updateNotificationHandle
 );
 notificationsRouter.put(
   "/notifications/seen/:notificationId",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.seenNotificationHandle
 );
 notificationsRouter.put(
   "/notifications/seenall",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.seenAllNotificationsHandle
 );
 notificationsRouter.delete(
   "/notifications/id/:notificationId",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.deleteNotificationHandle
 );
 notificationsRouter.delete(
   "/notifications/my",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.deleteNotificationByUserIdHandle
 );
 notificationsRouter.get(
   "/notifications/check",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.getNotificationsByUserIdHandle
 );
 notificationsRouter.get(
   "/notifications/:notificationId",
-  authCookieMiddleware,
+  hmacCookieHandlers,
   handlers.getNotificationHandle
 );
 
