@@ -351,8 +351,7 @@ exports.seenNotificationHandle = async function (req, res) {
       );
   }
 
-  // let notificationUUID = uuid.FromString(notificationId);
-  let notificationUUID = uuidv4();
+  let notificationUUID = notificationId;
   if (!notificationUUID) {
     log.Error("UUID Error");
     return res
@@ -443,8 +442,7 @@ exports.deleteNotificationHandle = async function (req, res) {
       );
   }
 
-  // let notificationUUID = uuid.FromString(notificationId);
-  let notificationUUID = uuidv4();
+  let notificationUUID = notificationId;
   if (!notificationUUID) {
     log.Error("UUID Error");
     return res
@@ -577,7 +575,7 @@ exports.getNotificationHandle = async function (req, res) {
       );
   }
 
-  let notificationUUID = uuid.FromString(notificationId);
+  let notificationUUID = notificationId;
   if (!notificationUUID) {
     log.Error("UUID Error");
     return res

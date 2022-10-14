@@ -1,6 +1,6 @@
 const { appConfig } = require("../config");
 const jwt = require("jsonwebtoken");
-const Notification = require("../models/notification");
+const Notification = require("../models/Notification");
 const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
 // const MUUID = require("uuid-mongodb");
@@ -14,9 +14,80 @@ exports.getLastNotifications = async function () {
   sortMap["created_date"] = -1;
   ne["$ne"] = true;
   filter["isEmailSent"] = ne;
-  // return s.FindNotificationsReceiver(filter, 10, 0, sortMap)
-  return await Notification.find(filter).sort(sortMap);
+  return await findNotificationsReceiver(filter, 10, 0, sortMap);
 };
+
+async function findNotificationsReceiver(filter, limit, skip, sort) {
+  var pipeline = [];
+
+  let matchOperator = [];
+  matchOperator["$match"] = filter;
+
+  let sortOperator = [];
+  sortOperator["$sort"] = sort;
+  pipeline.push(matchOperator, sortOperator);
+
+  if (skip > 0) {
+    let skipOperator = [];
+    skipOperator["$skip"] = skip;
+    pipeline.push(skipOperator);
+  }
+
+  if (limit > 0) {
+    let limitOperator = [];
+    limitOperator["$limit"] = limit;
+    pipeline.push(limitOperator);
+  }
+
+  let lookupOperator = [];
+  lookupOperator["$lookup"] = {
+    localField: "notifyRecieverUserId",
+    from: "userProfile",
+    foreignField: "objectId",
+    as: "userinfo",
+  };
+
+  let unwindOperator = [];
+  unwindOperator["$unwind"] = "$userinfo";
+
+  let projectOperator = [];
+  let project = [];
+
+  project["objectId"] = 1;
+  project["ownerUserId"] = 1;
+  project["ownerDisplayName"] = 1;
+  project["ownerAvatar"] = 1;
+  project["created_date"] = 1;
+  project["description"] = 1;
+  project["url"] = 1;
+  project["notifyRecieverUserId"] = 1;
+  project["notifyRecieverEmail"] = "$userinfo.email";
+  project["targetId"] = 1;
+  project["isSeen"] = 1;
+  project["type"] = 1;
+  project["emailNotification"] = 1;
+  project["isEmailSent"] = 1;
+
+  projectOperator["$project"] = project;
+
+  pipeline.push(lookupOperator, unwindOperator, projectOperator);
+  const result = await Notification.aggregate(pipeline);
+
+  // if result.Error() != nil {
+  // 	return nil, result.Error()
+  // }
+  // var commentList []dto.Notification
+  // for result.Next() {
+  // 	var comment dto.Notification
+  // 	errDecode := result.Decode(&comment)
+  // 	if errDecode != nil {
+  // 		return nil, fmt.Errorf("Error docoding on dto.Comment")
+  // 	}
+  // 	commentList = append(commentList, comment)
+  // }
+
+  // return commentList, nil
+}
 
 // getUsersSettings Get users settings
 exports.getUsersNotificationSettings = async function (userIds, userInfoInReq) {
@@ -35,7 +106,7 @@ exports.getUsersNotificationSettings = async function (userIds, userInfoInReq) {
   userHeaders["displayName"] = userInfoInReq.displayName;
   userHeaders["role"] = userInfoInReq.systemRole;
 
-  const resData = functionCall(post, payload, url, userHeaders);
+  const resData = microCall(post, payload, url, userHeaders);
   if (resData == "") {
     return Error(`Cannot send request to ${url} - ${resData}`);
   }
@@ -44,29 +115,42 @@ exports.getUsersNotificationSettings = async function (userIds, userInfoInReq) {
   return parsedData;
 };
 
-async function functionCall(method, bytesReq, url, header) {
-  let axiosConfig = {
-    headers: {
-      "Content-Type": "application/json;charset=UTF-8",
-      "user-agent": "anyToActionRoom",
-    },
-  };
-  const xCloudSignature = appConfig.HMAC_NAME;
-  axiosConfig.headers[xCloudSignature] = "application/json";
-  const digest = hmac.sign(bytesReq, process.env.HMAC_HEADER);
-  console.log(`\ndigest: sha1=${digest}, header: ${xCloudSignature} \n`);
+// microCall send request to another function/microservice using cookie validation
+/**
+ *
+ * @param {'get' | 'GET'
+  | 'delete' | 'DELETE'
+  | 'head' | 'HEAD'
+  | 'options' | 'OPTIONS'
+  | 'post' | 'POST'
+  | 'put' | 'PUT'
+  | 'patch' | 'PATCH'
+  | 'purge' | 'PURGE'
+  | 'link' | 'LINK'
+  | 'unlink' | 'UNLINK'} method
+ * @param {*} data
+ * @param {string} url
+ * @param {*} headers
+ */
+const microCall = async (method, data, url, headers = {}) => {
+  try {
+    const digest = GateKeeper.sign(JSON.stringify(data), process.env.HMAC_KEY);
+    headers["Content-type"] = "application/json";
+    headers[appConfig.HMAC_NAME] = "sha1=" + digest;
 
-  if (!header) {
-    for (let k = 0; k < header.length; k++) {
-      for (let v = 0; v < header.length; v++) {
-        axiosConfig.headers[header[k]] = header[v];
-      }
-    }
-  }
+    console.log(`\ndigest: sha1=${digest}, header: ${appConfig.HMAC_NAME} \n`);
 
-  const httpReq = await axios.post(URL, bodyReader, axiosConfig);
+    const result = await axios({
+      method: method,
+      data,
+      url: appConfig.InternalGateway + url,
+      headers,
+    });
 
-  if (!httpReq) {
+    return result.data;
+  } catch (error) {
+    // handle axios error and throw correct error
+    // https://github.com/axios/axios#handling-errors
     console.log(
       `Error while sending admin check request!: callAPIWithHMAC ${httpReq}`
     );
@@ -74,9 +158,7 @@ async function functionCall(method, bytesReq, url, header) {
       "Error while sending admin check request!: actionRoom/callAPIWithHMAC"
     );
   }
-  console.info(httpReq);
-  return await res.status(HttpStatusCode.OK).json(httpReq);
-}
+};
 
 // UpdateEmailSent update bulk notification list
 exports.updateEmailSent = async function (notifyIds) {

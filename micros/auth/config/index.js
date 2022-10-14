@@ -41,7 +41,7 @@ exports.appConfig = {
   // WRITE_TIMEOUT:config.environment.write_timeout,
   // COOKIE_ROOT_DOMAIN:config.environment.cookie_root_domain,
   // GATEWAY:config.environment.gateway,
-  // INTERNAL_GATEWAY:config.environment.internal_gateway,
+  INTERNAL_GATEWAY: config.environment.internal_gateway,
   // ORIGIN:config.environment.origin,
   // WEBSOCKET_SERVER_URL: config.environment.websocket_server_url,
   // DEBUG:config.environment.debug,

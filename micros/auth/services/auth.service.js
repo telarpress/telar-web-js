@@ -115,7 +115,6 @@ exports.getUserProfileByID = async function (reqUserId) {
       "user-agent": "authToProfile",
     },
   };
-  // const foundProfile = await axios.get(profileURL, axiosConfig);
 
   const foundProfile = await axios.get(profileURL, axiosConfig);
 
@@ -138,12 +137,138 @@ exports.getUserProfileByID = async function (reqUserId) {
     if (foundProfile.response.status == 404)
       console.log("NotFoundHTTPStatusError: " + foundProfile);
 
-    console.log(`functionCall ${profileURL} -  ${foundProfile.message}`);
-    return Error("getUserProfileByID/functionCall");
+    console.log(`microCall ${profileURL} -  ${foundProfile.message}`);
+    return Error("getUserProfileByID/microCall");
   }
 
   console.log(foundProfile);
 };
+
+// readLanguageSettingAsync Read language setting async
+exports.readLanguageSettingAsync = async function (objectId, userInfoInReq) {
+  foundUser.objectId,
+    (userInfoInReq = {
+      UserId: foundUser.objectId,
+      Username: foundUser.username,
+      systemRole: foundUser.role,
+    });
+
+  const settings = getUsersLangSettings(objectId, userInfoInReq);
+  return await { settings: settings };
+};
+
+// getUsersLangSettings Get users language settings
+async function getUsersLangSettings(objectId, userInfoInReq) {
+  const url = "/setting/dto/ids";
+  const model = {
+    userIds: objectId,
+    type: "lang",
+  };
+
+  try {
+    return await microCall(
+      post,
+      model,
+      url,
+      getHeadersFromUserInfoReq(userInfoInReq)
+    );
+  } catch (error) {
+    return `Cannot send request to ${url} - ${error}`;
+  }
+}
+
+// microCall send request to another function/microservice using cookie validation
+/**
+ *
+ * @param {'get' | 'GET'
+  | 'delete' | 'DELETE'
+  | 'head' | 'HEAD'
+  | 'options' | 'OPTIONS'
+  | 'post' | 'POST'
+  | 'put' | 'PUT'
+  | 'patch' | 'PATCH'
+  | 'purge' | 'PURGE'
+  | 'link' | 'LINK'
+  | 'unlink' | 'UNLINK'} method
+ * @param {*} data
+ * @param {string} url
+ * @param {*} headers
+ */
+const microCall = async (method, data, url, headers = {}) => {
+  try {
+    const digest = GateKeeper.sign(JSON.stringify(data), process.env.HMAC_KEY);
+    headers["Content-type"] = "application/json";
+    headers[appConfig.HMAC_NAME] = "sha1=" + digest;
+
+    console.log(`\ndigest: sha1=${digest}, header: ${appConfig.HMAC_NAME} \n`);
+
+    const result = await axios({
+      method: method,
+      data,
+      url: appConfig.InternalGateway + url,
+      headers,
+    });
+
+    return result.data;
+  } catch (error) {
+    // handle axios error and throw correct error
+    // https://github.com/axios/axios#handling-errors
+    console.log(
+      `Error while sending admin check request!: callAPIWithHMAC ${httpReq}`
+    );
+    return Error(
+      "Error while sending admin check request!: actionRoom/callAPIWithHMAC"
+    );
+  }
+};
+
+// getHeadersFromUserInfoReq
+async function getHeadersFromUserInfoReq(info) {
+  let userHeaders = [];
+  userHeaders["uid"] = info.userId.String();
+  userHeaders["email"] = info.username;
+  userHeaders["avatar"] = info.avatar;
+  userHeaders["displayName"] = info.displayName;
+  userHeaders["role"] = info.systemRole;
+  return await userHeaders;
+}
+
+// getSettingPath
+exports.getSettingPath = async function (userId, settingType, settingKey) {
+  return await userId, settingType, settingKey;
+};
+
+// createDefaultLangSetting
+exports.createDefaultLangSetting = async function (userInfoInReq) {
+  const settingBytes = {
+    list: [
+      {
+        type: "lang",
+        list: [
+          {
+            name: "current",
+            value: "en",
+          },
+        ],
+      },
+    ],
+  };
+
+  // Send request for setting
+  const settingURL = "/setting";
+  const setting = microCall(
+    post,
+    settingBytes,
+    settingURL,
+    getHeadersFromUserInfoReq(userInfoInReq)
+  );
+
+  if (!setting) {
+    return false;
+  }
+  return setting;
+};
+
 exports.checkTokenExist = async function (reqCode) {
   return await UserToken.findOne({ code: reqCode });
 };

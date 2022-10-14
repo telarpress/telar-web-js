@@ -447,11 +447,50 @@ exports.loginTelarHandler = async (req, res) => {
       );
   }
   //TODO: Check Go Version
-  // const profile = await authService.getUserProfileByID(foundUser.objectId);
-  // console.log(profile);
-  // if (!profile) {
-  //   log.Error(`loginHandler: Profile doesn't exist ${profile}`);
-  // }
+  const profile = await authService.getUserProfileByID(foundUser.objectId);
+  if (!profile) {
+    log.Error(`loginHandler: Profile doesn't exist ${profile}`);
+  }
+
+  const langChannel = authService.readLanguageSettingAsync(
+    foundUser.objectId,
+    (userInfoInReq = {
+      UserId: foundUser.objectId,
+      Username: foundUser.username,
+      systemRole: foundUser.role,
+    })
+  );
+
+
+  // profileResult, langResult := <-profileChannel, <-langChannel
+	// if profileResult.Error != nil || profileResult.Profile == nil {
+	// 	if profileResult.Error != nil {
+	// 		log.Error(" User profile  %s", profileResult.Error.Error())
+	// 	}
+	// 	return c.Status(http.StatusBadRequest).JSON(utils.Error("internal/getUserProfile", "Can not find user profile!"))
+	// }
+
+
+  // let currentUserLang = "en"
+	// log.Error("langResult.settings " + langResult.settings)
+	// const langSettigPath = authService.getSettingPath(foundUser.objectId, "lang", "current")
+	// if (langResult.settings[langSettigPath] &&  langResult.settings[langSettigPath] != "") {
+	// 	currentUserLang = val
+	// } else  {
+	// 	let	userInfoReq = UserInfoInReq = ({
+	// 			UserId:      foundUser.objectId,
+	// 			Username:    foundUser.username,
+	// 			Avatar:      profileResult.profile.avatar,
+	// 			DisplayName: profileResult.profile.fullName,
+	// 			SystemRole:  foundUser.role,
+	// 		})
+	// 	}
+	// 		createDefaultLangSetting(userInfoReq)
+
+
+	}
+
+
   // If you request a user login with a user role,
   // use the refresh Token to log in, and other roles must use accessToken
   res.cookie("token", await generateTokens.accessToken(foundUser));
