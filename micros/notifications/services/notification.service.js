@@ -71,22 +71,7 @@ async function findNotificationsReceiver(filter, limit, skip, sort) {
   projectOperator["$project"] = project;
 
   pipeline.push(lookupOperator, unwindOperator, projectOperator);
-  const result = await Notification.aggregate(pipeline);
-
-  // if result.Error() != nil {
-  // 	return nil, result.Error()
-  // }
-  // var commentList []dto.Notification
-  // for result.Next() {
-  // 	var comment dto.Notification
-  // 	errDecode := result.Decode(&comment)
-  // 	if errDecode != nil {
-  // 		return nil, fmt.Errorf("Error docoding on dto.Comment")
-  // 	}
-  // 	commentList = append(commentList, comment)
-  // }
-
-  // return commentList, nil
+  return await Notification.aggregate(pipeline);
 }
 
 // getUsersSettings Get users settings

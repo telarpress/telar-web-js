@@ -103,23 +103,21 @@ exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
     console.log(`callAPIWithHMAC ${getProfile}`);
     return Error("auth/callAPIWithHMAC");
   }
-  console.info(getProfile);
   return true;
 };
 
 exports.getUserProfileByID = async function (reqUserId) {
-  const profileURL = `/profile/${reqUserId}`;
+  const profileURL = `/profile/dto/id/${reqUserId}`;
   let axiosConfig = {
     headers: {
       "Content-Type": "application/json;charset=UTF-8",
-      "user-agent": "authToProfile",
+      "user-agent": "GetUserProfile",
     },
   };
 
   const foundProfile = await axios.get(profileURL, axiosConfig);
 
   if (!foundProfile) {
-    //TODO: Expansion of errors
     if (appConfig.Node_ENV === "development") {
       if (foundProfile.response) {
         // The client was given an error response (5xx, 4xx)
@@ -141,39 +139,31 @@ exports.getUserProfileByID = async function (reqUserId) {
     return Error("getUserProfileByID/microCall");
   }
 
-  console.log(foundProfile);
+  return foundProfile.data;
 };
 
 // readLanguageSettingAsync Read language setting async
 exports.readLanguageSettingAsync = async function (objectId, userInfoInReq) {
-  foundUser.objectId,
-    (userInfoInReq = {
-      UserId: foundUser.objectId,
-      Username: foundUser.username,
-      systemRole: foundUser.role,
-    });
-
-  const settings = getUsersLangSettings(objectId, userInfoInReq);
+  const settings = await getUsersLangSettings(objectId, userInfoInReq);
   return await { settings: settings };
 };
 
 // getUsersLangSettings Get users language settings
 async function getUsersLangSettings(objectId, userInfoInReq) {
-  const url = "/setting/dto/ids";
-  const model = {
-    userIds: objectId,
-    type: "lang",
-  };
-
   try {
+    const url = "/setting/dto/ids";
+    const model = {
+      userIds: objectId,
+      type: "lang",
+    };
     return await microCall(
-      post,
+      "post",
       model,
       url,
       getHeadersFromUserInfoReq(userInfoInReq)
     );
   } catch (error) {
-    return `Cannot send request to ${url} - ${error}`;
+    return `Cannot send request to /setting/dto/ids - ${error}`;
   }
 }
 
@@ -196,16 +186,18 @@ async function getUsersLangSettings(objectId, userInfoInReq) {
  */
 const microCall = async (method, data, url, headers = {}) => {
   try {
-    const digest = GateKeeper.sign(JSON.stringify(data), process.env.HMAC_KEY);
+    const digest = await GateKeeper.sign(
+      JSON.stringify(data),
+      process.env.HMAC_KEY
+    );
     headers["Content-type"] = "application/json";
-    headers[appConfig.HMAC_NAME] = "sha1=" + digest;
+    headers[appConfig.HMAC_NAME] = digest;
 
-    console.log(`\ndigest: sha1=${digest}, header: ${appConfig.HMAC_NAME} \n`);
-
+    console.log(`\ndigest: ${digest}, header: ${appConfig.HMAC_NAME} \n`);
     const result = await axios({
       method: method,
       data,
-      url: appConfig.InternalGateway + url,
+      url: "http://localhost" + url, // appConfig.INTERNAL_GATEWAY
       headers,
     });
 
@@ -214,7 +206,7 @@ const microCall = async (method, data, url, headers = {}) => {
     // handle axios error and throw correct error
     // https://github.com/axios/axios#handling-errors
     console.log(
-      `Error while sending admin check request!: callAPIWithHMAC ${httpReq}`
+      `Error while sending admin check request!: callAPIWithHMAC ${url}-${error}`
     );
     return Error(
       "Error while sending admin check request!: actionRoom/callAPIWithHMAC"
@@ -225,7 +217,7 @@ const microCall = async (method, data, url, headers = {}) => {
 // getHeadersFromUserInfoReq
 async function getHeadersFromUserInfoReq(info) {
   let userHeaders = [];
-  userHeaders["uid"] = info.userId.String();
+  userHeaders["uid"] = info.userId;
   userHeaders["email"] = info.username;
   userHeaders["avatar"] = info.avatar;
   userHeaders["displayName"] = info.displayName;
@@ -235,7 +227,7 @@ async function getHeadersFromUserInfoReq(info) {
 
 // getSettingPath
 exports.getSettingPath = async function (userId, settingType, settingKey) {
-  return await userId, settingType, settingKey;
+  return `${userId}:${settingType}:${settingKey}`;
 };
 
 // createDefaultLangSetting
@@ -257,7 +249,7 @@ exports.createDefaultLangSetting = async function (userInfoInReq) {
   // Send request for setting
   const settingURL = "/setting";
   const setting = microCall(
-    post,
+    "post",
     settingBytes,
     settingURL,
     getHeadersFromUserInfoReq(userInfoInReq)
@@ -350,10 +342,7 @@ exports.changeUserPasswordByAccessToken = async function (
 };
 
 exports.changeUserPasswordByCode = async function (user, newPassword, code) {
-  console.log(user);
   const token = await UserToken.findOne({ objectId: user.objectId });
-  console.log(token);
-  console.log(code);
   if (token.code != code) {
     throw new Error();
   }
@@ -400,10 +389,13 @@ exports.getTokens = async function () {
 
 // add Counter And Last Update
 exports.addCounterAndLastUpdate = async (objectId) => {
-  UserAuth.findOneAndUpdate({ objectId }, { last_updated: Date.now() });
+  UserAuth.findOneAndUpdate(
+    { objectId },
+    { last_updated: Math.floor(Date.now() / 1000) }
+  );
   return await UserToken.findOneAndUpdate(
     { objectId: objectId },
-    { $inc: { counter: 1 }, last_updated: Date.now() }
+    { $inc: { counter: 1 }, last_updated: Math.floor(Date.now() / 1000) }
   );
 };
 

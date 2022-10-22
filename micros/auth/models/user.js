@@ -16,8 +16,8 @@ const UserAuthSchema = new Schema(
     },
     phoneVerified: { type: Boolean, default: false },
     token_expires: { type: String, default: Date, expires: 1 * 600 }, // 10 min
-    created_date: { type: Date, default: Date.now },
-    last_updated: { type: Date, default: Date.now },
+    created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
+    last_updated: { type: Number, default: Math.floor(Date.now() / 1000) },
   },
   { collection: "userAuth" }
 );

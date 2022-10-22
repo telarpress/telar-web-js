@@ -231,31 +231,29 @@ exports.getAllUserSetting = async function (req, res) {
 };
 // GetSettingByUserIds a function invocation to setting by user ids
 exports.getSettingByUserIds = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetSettingByUserIds] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
+  // const token = req.cookies.token;
+  // if (!token) {
+  //   log.Error("[GetSettingByUserIds] Can not get current user");
+  //   return res
+  //     .status(HttpStatusCode.Unauthorized)
+  //     .send(
+  //       new utils.ErrorHandler(
+  //         "setting.invalidCurrentUser",
+  //         "Can not get current user"
+  //       ).json()
+  //     );
+  // }
 
   const { userIds, type } = req.body;
-
   try {
     const foundUsersSetting = await userSettingService.findSettingByUserIds(
       userIds,
-      type,
-      token
+      type
     );
+
     let mappedSetting = {};
     await foundUsersSetting.forEach((setting) => {
       let key = `${setting.ownerUserId}:${setting.type}:${setting.name}`;
-      console.log(key);
       mappedSetting[key] = setting.value;
     });
     return await res.status(HttpStatusCode.OK).send(mappedSetting).json();

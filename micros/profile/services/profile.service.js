@@ -95,8 +95,8 @@ exports.createDtoProfileHandle = function (profile) {
       1,
       1000
     )}/900/300/?blur`,
-    created_date: Date.now(),
-    last_updated: Date.now(),
+    created_date: Math.floor(Date.now() / 1000),
+    last_updated: Math.floor(Date.now() / 1000),
     permission: "user",
   });
   return newProfile.save();

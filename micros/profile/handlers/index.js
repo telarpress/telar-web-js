@@ -103,20 +103,19 @@ exports.getBySocialName = async function (req, res) {
 
 // ReadDtoProfileHandle a function invocation
 exports.readDtoProfileHandle = async function (req, res) {
-  const userId = req.params.userId;
-  if (!uuidValidate(UserId)) {
-    log.Error("ReadDtoProfileHandle: Parse UUID Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingReadDtoProfileHandle",
-          "parseUUIDError, Can not parse user id!"
-        ).json()
-      );
-  }
-
   try {
+    const userId = req.params.userId;
+    // if (!uuidValidate(UserId)) {
+    //   log.Error("ReadDtoProfileHandle: Parse UUID Problem");
+    //   return res
+    //     .status(HttpStatusCode.Unauthorized)
+    //     .send(
+    //       new utils.ErrorHandler(
+    //         "profile.missingReadDtoProfileHandle",
+    //         "parseUUIDError, Can not parse user id!"
+    //       ).json()
+    //     );
+    // }
     const findProfile = await profileService.getProfileById(userId);
     return res.status(HttpStatusCode.OK).send(findProfile).json();
   } catch (error) {
@@ -290,7 +289,6 @@ exports.getProfiles = async function (req, res) {
 exports.getProfileById = async function (req, res) {
   const token = req.cookies.token;
   const profileId = req.params.id;
-  console.log(profileId);
   if (!token) {
     log.Error("GetProfileHandle: Get Profile Problem");
     return res
@@ -504,8 +502,6 @@ exports.getProfileByIds = async function (req, res) {
 
 // DispatchProfilesHandle a function invocation to read authed user profile
 exports.dispatchProfilesHandle = async function (req, res) {
-  console.log(req.body);
-
   try {
     const foundUsers = await profileService.findProfileByUserIds(
       req.body.userIds
@@ -537,34 +533,31 @@ exports.dispatchProfilesHandle = async function (req, res) {
       payload: { actionRoomPayload },
     };
 
-    // const token = req.cookies.token;
-    // console.log(token);
-    // if (!token) {
-    //   log.Error("UpdateProfileHandle: Update Profile Problem");
-    //   return res
-    //     .status(HttpStatusCode.Unauthorized)
-    //     .send(
-    //       new utils.ErrorHandler(
-    //         "profile.missingUpdateProfile",
-    //         "Missing Update Profile"
-    //       ).json()
-    //     );
-    // }
-    const token =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAyMjUxNWE2LThkOTktNDMxMC1iMDc4LWMxNTZlMzkyMjZlZSIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNjYyMzM3OTA2LCJleHAiOjE2NjIzMzg3NDZ9.9eTjrT1vHtefkCUPOBsSSj41ZCSnLHWNd07P9PbwudQ";
+    const token = req.cookies.token;
+    if (!token) {
+      log.Error("UpdateProfileHandle: Update Profile Problem");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "profile.missingUpdateProfile",
+            "Missing Update Profile"
+          ).json()
+        );
+    }
     const currentUser = await profileService.findProfileByAccessToken(token);
 
-    // if (!(currentUser.objectId === req.body.objectId)) {
-    //   log.Error("[DispatchProfilesHandle] Can not get current user");
-    //   return res
-    //     .status(HttpStatusCode.BadRequest)
-    //     .send(
-    //       new utils.ErrorHandler(
-    //         "profile.missingDispatchProfilesHandle",
-    //         "Can not get current user"
-    //       ).json()
-    //     );
-    // }
+    if (!(currentUser.objectId === req.body.objectId)) {
+      log.Error("[DispatchProfilesHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "profile.missingDispatchProfilesHandle",
+            "Can not get current user"
+          ).json()
+        );
+    }
     const userInfoReq = {
       userId: currentUser.objectId,
       username: currentUser.email,
@@ -639,7 +632,6 @@ exports.initProfileIndexHandle = async function (req, res) {
 // PUT update /profile
 exports.updateProfile = async function (req, res) {
   const token = req.cookies.token;
-  console.log(token);
   if (!token) {
     log.Error("UpdateProfileHandle: Update Profile Problem");
     return res

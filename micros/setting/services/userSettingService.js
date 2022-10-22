@@ -74,8 +74,6 @@ exports.deleteUserSettingByOwnerUserId = async function (userId) {
 };
 
 exports.findSettingByUserIds = async function (userIds, type, token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  if (decode.id != ownerUserId) return Error("Error in Authentication");
   return UserSetting.find({
     ownerUserId: { $in: userIds.split(",") },
     type: type,
@@ -100,14 +98,12 @@ exports.getAllUserSetting = async function (userId) {
     let type = [setting.type];
     groupSettingsMap = groupSettingsMap.concat(type, settingModel);
   });
-  console.log(userSetting);
   let groupSettingsModel = new Object({
     Type: userSetting[0].type,
     CreatedDate: userSetting[0].createdDate,
     OwnerUserId: userSetting[0].ownerUserId,
     List: groupSettingsMap,
   });
-  console.log(groupSettingsModel);
 
   return groupSettingsModel;
 };

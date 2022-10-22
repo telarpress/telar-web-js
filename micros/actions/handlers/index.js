@@ -93,7 +93,7 @@ exports.dispatchHandle = async function (req, res) {
     const httpReq = await axios.post(URL, bodyReader, axiosConfig);
 
     if (!httpReq) {
-      console.log(`callAPIWithHMAC ${httpReq}`);
+      log.Error(`callAPIWithHMAC ${httpReq}`);
       return Error("actionRoom/callAPIWithHMAC");
     }
     console.info(httpReq);
@@ -308,7 +308,7 @@ exports.verifyAccessKeyHandle = async function (req, res) {
       currentUserId,
       model.accessKey
     );
-    console.log(isVerified);
+
     return res
       .status(HttpStatusCode.OK)
       .send({ isVerified: isVerified })

@@ -3,7 +3,7 @@ const profileRouter = express.Router();
 
 const handlers = require("../handlers");
 
-profileRouter.get("/profile/dto/id/:id", handlers.getProfileData);
+profileRouter.get("/profile/dto/id/:userId", handlers.readDtoProfileHandle);
 profileRouter.get("/profile/all", handlers.getProfiles);
 profileRouter.get("/profile/:id", handlers.getProfileById);
 
@@ -15,7 +15,6 @@ profileRouter.get("/profile/social/:name", handlers.getBySocialName);
 
 profileRouter.put("/profile/profile", handlers.updateProfileHandle); // With UserId From Profile
 profileRouter.put("/profile/last-seen", handlers.updateLastSeen);
-profileRouter.get("/profile/dto/id/:userId", handlers.readDtoProfileHandle);
 profileRouter.post("/profile/dto", handlers.createDtoProfileHandle);
 
 profileRouter.put("/profile/", handlers.updateProfile); // With Token

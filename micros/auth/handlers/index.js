@@ -60,6 +60,7 @@ exports.signupTokenHandle = async (req, res) => {
   //       ).json()
   //     );
   // }
+
   const passStrength = await zxcvbn(req.body.newPassword);
   if (passStrength.guesses < 37) {
     log.Error(
@@ -172,7 +173,7 @@ exports.signupTokenHandle = async (req, res) => {
   postData.email = userData.username;
   postData.password = hashPassword;
   postData.userName = userData.username;
-  //TODO: req.url replace with a dynamic url and add "user-agent": "authToprofile" arg
+
   const callAPIWithHMAC = await authService.callAPIWithHMAC(
     "POST",
     req.url,
@@ -446,65 +447,125 @@ exports.loginTelarHandler = async (req, res) => {
         ).json()
       );
   }
-  //TODO: Check Go Version
-  const profile = await authService.getUserProfileByID(foundUser.objectId);
-  if (!profile) {
-    log.Error(`loginHandler: Profile doesn't exist ${profile}`);
+
+  try {
+    const profileChannel = authService.getUserProfileByID(foundUser.objectId);
+    if (!profileChannel) {
+      log.Error(`loginHandler: Profile doesn't exist ${profileChannel}`);
+    }
+    let avatar;
+    let socialName;
+    await profileChannel.then((profile) => {
+      avatar = profile.avatar;
+      socialName = profile.socialName;
+    });
+
+    const langChannel = authService.readLanguageSettingAsync(
+      foundUser.objectId,
+      {
+        userId: foundUser.objectId,
+        username: foundUser.username,
+        systemRole: foundUser.role,
+        avatar: avatar,
+        displayName: socialName,
+      }
+    );
+    const [profileResult, langResult] = await Promise.all([
+      profileChannel,
+      langChannel,
+    ]);
+
+    let currentUserLang = "en";
+    log.Error(`langResult.settings ${langResult.settings}`);
+    const langSettigPath = await authService.getSettingPath(
+      foundUser.objectId,
+      "lang",
+      "current"
+    );
+    if (langResult.settings[langSettigPath] != undefined) {
+      currentUserLang = langResult.settings[langSettigPath];
+    } else {
+      let userInfoReq = {
+        userId: foundUser.objectId,
+        username: foundUser.username,
+        avatar: profileResult.avatar,
+        displayName: profileResult.fullName,
+        systemRole: foundUser.role,
+      };
+      await authService.createDefaultLangSetting(userInfoReq);
+    }
+    const tokenModel = {
+      oauthProvider: null,
+      providerName: "telar",
+      profile: {
+        name: foundUser.username,
+        id: foundUser.objectId,
+        login: foundUser.username,
+      },
+      organizationList: "Red Gold",
+      name: "email@gmail.com",
+      access_token: "ProviderAccessToken", // "token":  ProviderAccessToken
+      organizations: "Red Gold",
+      claim: {
+        displayName: profileResult.fullName,
+        socialName: profileResult.socialName,
+        email: profileResult.email,
+        avatar: profileResult.avatar,
+        banner: profileResult.banner,
+        tagLine: profileResult.tagLine,
+        userId: foundUser.objectId,
+        uid: foundUser.objectId,
+        role: foundUser.role,
+        createdDate: foundUser.created_date,
+      },
+    };
+    const session = await generateTokens.createToken(tokenModel);
+    if (!session) {
+      log.Error(`Error creating session`);
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "auth.createToken",
+            "Internal server error creating token"
+          ).json()
+        );
+    }
+    // Write session on cookie
+    await generateTokens.writeSessionOnCookie(res, session);
+
+    // Write user language on cookie
+    await generateTokens.writeUserLangOnCookie(res, currentUserLang);
+
+    let webURL = appConfig.EXTERNAL_REDIRECT_DOMAIN;
+
+    const redirect = req.query.r;
+    log.Error(`SetCookie done, redirect to: ${redirect}`);
+
+    // Redirect to original requested resource (if specified in r=)
+    if (req.query.r) {
+      log.Error(
+        `Found redirect value "r"=${redirect}, instructing client to redirect`
+      );
+      // Note: unable to redirect after setting Cookie, so landing on a redirect page instead.
+      webURL = redirect;
+    }
+
+    return res.status(HttpStatusCode.OK).send({
+      user: profileResult,
+      redirect: webURL,
+    });
+  } catch (error) {
+    log.Error(`User profile  ${error}`);
+    return res
+      .status(HttpStatusCode.BadRequest)
+      .send(
+        new utils.ErrorHandler(
+          "auth.getUserProfile",
+          "Can not find user profile!"
+        ).json()
+      );
   }
-
-  const langChannel = authService.readLanguageSettingAsync(
-    foundUser.objectId,
-    (userInfoInReq = {
-      UserId: foundUser.objectId,
-      Username: foundUser.username,
-      systemRole: foundUser.role,
-    })
-  );
-
-
-  // profileResult, langResult := <-profileChannel, <-langChannel
-	// if profileResult.Error != nil || profileResult.Profile == nil {
-	// 	if profileResult.Error != nil {
-	// 		log.Error(" User profile  %s", profileResult.Error.Error())
-	// 	}
-	// 	return c.Status(http.StatusBadRequest).JSON(utils.Error("internal/getUserProfile", "Can not find user profile!"))
-	// }
-
-
-  // let currentUserLang = "en"
-	// log.Error("langResult.settings " + langResult.settings)
-	// const langSettigPath = authService.getSettingPath(foundUser.objectId, "lang", "current")
-	// if (langResult.settings[langSettigPath] &&  langResult.settings[langSettigPath] != "") {
-	// 	currentUserLang = val
-	// } else  {
-	// 	let	userInfoReq = UserInfoInReq = ({
-	// 			UserId:      foundUser.objectId,
-	// 			Username:    foundUser.username,
-	// 			Avatar:      profileResult.profile.avatar,
-	// 			DisplayName: profileResult.profile.fullName,
-	// 			SystemRole:  foundUser.role,
-	// 		})
-	// 	}
-	// 		createDefaultLangSetting(userInfoReq)
-
-
-	}
-
-
-  // If you request a user login with a user role,
-  // use the refresh Token to log in, and other roles must use accessToken
-  res.cookie("token", await generateTokens.accessToken(foundUser));
-  //TODO: Change Model
-  //refreshToken Save To DB With access_token Name
-  const refreshToken = await generateTokens.refreshToken(foundUser);
-  res.cookie("refreshToken", refreshToken);
-  //TODO: use headers authorization
-  // const tokenauthorization = req.headers.authorization.split(" ");
-  res.status(200).json({
-    error: false,
-    refreshToken,
-    message: "Logged in sucessfully",
-  });
 };
 
 // CheckAdmin find user auth by userId
@@ -955,8 +1016,6 @@ exports.getForgetPassword = async (req, res) => {
       );
   }
   await authService.addCounterAndLastUpdate(token.objectId);
-  const access = await generateTokens.accessToken(user);
-  await generateTokens.refreshToken(user);
 
   await authService.emptyTokenCode(user.objectId);
 
