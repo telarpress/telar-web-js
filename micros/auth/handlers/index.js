@@ -22,7 +22,6 @@ const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 // SignupPageHandler creates a handler for logging in
 exports.signupPageHandler = async (req, res) => {
   const token = req.cookies.token;
-
   try {
     await authService.checkVerifyToken(token);
     res.redirect("/profile");
@@ -46,203 +45,214 @@ exports.signupPageHandler = async (req, res) => {
 
 // SignupTokenHandle create signup token
 exports.signupTokenHandle = async (req, res) => {
-  // TODO: Validation Implation
-  // const { error } = UserAuthValidate(req.body);
-  // if (error) {
-  //   log.Error(error);
-  //   log.Error("signupTokenHandle: missing validation");
-  //   return res
-  //     .status(HttpStatusCode.BadRequest)
-  //     .send(
-  //       new utils.ErrorHandler(
-  //         "auth.missingvalidation",
-  //         "Missing validation"
-  //       ).json()
-  //     );
-  // }
-
-  const passStrength = await zxcvbn(req.body.newPassword);
-  if (passStrength.guesses < 37) {
-    log.Error(
-      ` *** WARNING *** - User With Email: ${req.body.email} Password Strength is: ${passStrength.guesses} and ${passStrength.crack_times_display.online_no_throttling_10_per_second} crack time estimations`
-    );
-    return res
-      .status(HttpStatusCode.BadRequest)
-      .send(
-        new utils.ErrorHandler(
-          "auth.needStrongerPassword",
-          "Password is not strong enough!"
-        ).json()
-      );
-  }
-
-  // Verify Captha
-  if (!appConfig.Node_ENV === "TEST") {
-    const resultRecaptchV3 = await authService.recaptchaV3(
-      req.body["g-recaptcha-response"]
-    );
-
-    if (!resultRecaptchV3) {
+  try {
+    // TODO: Validation Implation
+    // const { error } = UserAuthValidate(req.body);
+    // if (error) {
+    //   log.Error(error);
+    //   log.Error("signupTokenHandle: missing validation");
+    //   return res
+    //     .status(HttpStatusCode.BadRequest)
+    //     .send(
+    //       new utils.ErrorHandler(
+    //         "auth.missingvalidation",
+    //         "Missing validation"
+    //       ).json()
+    //     );
+    // }
+    const passStrength = await zxcvbn(req.body.newPassword);
+    if (passStrength.guesses < 37) {
       log.Error(
-        `Can not verify recaptcha ${appConfig.RECAPTCHA_SITE_KEY} error: ${resultRecaptchV3}`
+        ` *** WARNING *** - User With Email: ${req.body.email} Password Strength is: ${passStrength.guesses} and ${passStrength.crack_times_display.online_no_throttling_10_per_second} crack time estimations`
       );
       return res
-        .status(HttpStatusCode.InternalServerError)
+        .status(HttpStatusCode.BadRequest)
         .send(
           new utils.ErrorHandler(
-            "internal/recaptcha",
-            "Error happened in verifying captcha!"
+            "auth.needStrongerPassword",
+            "Password is not strong enough!"
           ).json()
         );
     }
 
-    if (!resultRecaptchV3.success) {
-      log.Error("Error happened in validating recaptcha!");
-      return res
-        .status(HttpStatusCode.InternalServerError)
-        .send(
-          new utils.ErrorHandler(
-            "internal/recaptchaNotValid",
-            "Recaptcha is not valid!"
-          ).json()
-        );
-    }
-  }
+    // Verify Captha
+    if (!appConfig.Node_ENV === "TEST") {
+      const resultRecaptchV3 = await authService.recaptchaV3(
+        req.body["g-recaptcha-response"]
+      );
 
-  // Check user exist
-  const findUser = await authService
-    .findByUsername(req.body.email)
-    .catch((findError) => {
-      const errorMessage = `Error while finding user by user name : ${findError}`;
-      log.Error(errorMessage);
+      if (!resultRecaptchV3) {
+        log.Error(
+          `Can not verify recaptcha ${appConfig.RECAPTCHA_SITE_KEY} error: ${resultRecaptchV3}`
+        );
+        return res
+          .status(HttpStatusCode.InternalServerError)
+          .send(
+            new utils.ErrorHandler(
+              "internal/recaptcha",
+              "Error happened in verifying captcha!"
+            ).json()
+          );
+      }
+
+      if (!resultRecaptchV3.success) {
+        log.Error("Error happened in validating recaptcha!");
+        return res
+          .status(HttpStatusCode.InternalServerError)
+          .send(
+            new utils.ErrorHandler(
+              "internal/recaptchaNotValid",
+              "Recaptcha is not valid!"
+            ).json()
+          );
+      }
+    }
+
+    // Check user exist
+    const findUser = await authService
+      .findByUsername(req.body.email)
+      .catch((findError) => {
+        const errorMessage = `Error while finding user by user name : ${findError}`;
+        log.Error(errorMessage);
+        return res
+          .status(HttpStatusCode.Conflict)
+          .send(
+            new utils.ErrorHandler("auth.userAlreadyExist", errorMessage).json()
+          );
+      });
+
+    if (findUser) {
+      log.Error("userAlreadyExist", "User already exist - " + req.body.email);
       return res
         .status(HttpStatusCode.Conflict)
         .send(
-          new utils.ErrorHandler("auth.userAlreadyExist", errorMessage).json()
+          new utils.ErrorHandler(
+            "userAlreadyExist",
+            "User already exist - " + req.body.email
+          ).json()
         );
+    }
+
+    // Create signup token
+    const newUserId = uuidv4();
+
+    //TODO: PhoneVerify
+    // const token = "";
+    // var tokenErr = Error();
+    // if (req.body.VerifyType == "Email") {
+    // } else if (req.body.VerifyType == "Phone") {
+    // }
+
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
+    const hashPassword = await bcrypt.hash(req.body.newPassword, salt);
+
+    let userData = await authService.createUser(
+      newUserId,
+      req.body.email,
+      hashPassword
+    );
+
+    if (!userData) {
+      log.Error("Error happened in creating User Information");
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "auth.createUser",
+            "Error happened in creating User Information! - " + req.url
+          ).json()
+        );
+    }
+
+    const postData = {};
+    postData.id = userData.objectId;
+    postData.fullName = req.body.fullName;
+    postData.email = userData.username;
+    postData.password = hashPassword;
+    postData.userName = userData.username;
+
+    const callAPIWithHMAC = await authService.callAPIWithHMAC(
+      "POST",
+      req.url,
+      postData,
+      userData
+    );
+
+    if (!callAPIWithHMAC) {
+      log.Error(callAPIWithHMAC);
+      log.Error("Error happened in callAPIWithHMAC!");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth/callAPIWithHMAC",
+            "Error happened in callAPIWithHMAC! - " + req.body.email
+          ).json()
+        );
+    }
+    let link = "";
+    const emailVerification = await authService.CreateEmailVerficationToken({
+      UserId: newUserId,
+      Username: req.body.email,
+      EmailTo: req.body.email,
+      RemoteIpAddress: ip,
     });
 
-  if (findUser) {
-    log.Error("userAlreadyExist", "User already exist - " + req.body.email);
-    return res
-      .status(HttpStatusCode.Conflict)
-      .send(
-        new utils.ErrorHandler(
-          "userAlreadyExist",
-          "User already exist - " + req.body.email
-        ).json()
-      );
-  }
+    if (!emailVerification) {
+      log.Error(`Error While Create Token: ${emailVerification}`);
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "internal/createTokenAuth",
+            "Error happened in creating Token! - " + req.body.email
+          ).json()
+        );
+    }
 
-  // Create signup token
-  const newUserId = uuidv4();
+    link = `${emailVerification.code}`;
+    const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
+    // TODO: if Verfify By Link
+    // link = `${appConfig.AUTH_WEB_URI}/user/verify/${emailVerification.code}`;
 
-  //TODO: PhoneVerify
-  // const token = "";
-  // var tokenErr = Error();
-  // if (req.body.VerifyType == "Email") {
-  // } else if (req.body.VerifyType == "Phone") {
-  // }
+    // Send Email
+    const sendVerificationEmail = await sendEmail(
+      req.body.fullName,
+      req.body.email,
+      link,
+      "email_code_verify-css",
+      "Your verification code ",
+      verification_Address
+    );
+    if (!sendVerificationEmail) {
+      log.Error("Error happened in sending Email!");
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "internal/sendEmailAuth",
+            "Error happened in sending email! - " + req.body.email
+          ).json()
+        );
+    }
 
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
-  const salt = await bcrypt.genSalt(Number(appConfig.SALT));
-  const hashPassword = await bcrypt.hash(req.body.newPassword, salt);
-
-  let userData = await authService.createUser(
-    newUserId,
-    req.body.email,
-    hashPassword
-  );
-
-  if (!userData) {
-    log.Error("Error happened in creating User Information");
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "auth.createUser",
-          "Error happened in creating User Information! - " + req.url
-        ).json()
-      );
-  }
-
-  const postData = {};
-  postData.id = userData.objectId;
-  postData.fullName = req.body.fullName;
-  postData.email = userData.username;
-  postData.password = hashPassword;
-  postData.userName = userData.username;
-
-  const callAPIWithHMAC = await authService.callAPIWithHMAC(
-    "POST",
-    req.url,
-    postData,
-    userData
-  );
-
-  if (!callAPIWithHMAC) {
-    log.Error(callAPIWithHMAC);
-    log.Error("Error happened in callAPIWithHMAC!");
-    return res
-      .status(HttpStatusCode.BadRequest)
-      .send(
-        new utils.ErrorHandler(
-          "auth/callAPIWithHMAC",
-          "Error happened in callAPIWithHMAC! - " + req.body.email
-        ).json()
-      );
-  }
-  let link = "";
-  const emailVerification = await authService.CreateEmailVerficationToken({
-    UserId: newUserId,
-    Username: req.body.email,
-    EmailTo: req.body.email,
-    RemoteIpAddress: ip,
-  });
-
-  if (!emailVerification) {
-    log.Error(`Error While Create Token: ${emailVerification}`);
-    return res
-      .status(HttpStatusCode.InternalServerError)
-      .send(
-        new utils.ErrorHandler(
-          "internal/createTokenAuth",
-          "Error happened in creating Token! - " + req.body.email
-        ).json()
-      );
-  }
-
-  link = `${emailVerification.code}`;
-  const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
-  // TODO: if Verfify By Link
-  // link = `${appConfig.AUTH_WEB_URI}/user/verify/${emailVerification.code}`;
-
-  // Send Email
-  const sendVerificationEmail = await sendEmail(
-    req.body.fullName,
-    req.body.email,
-    link,
-    "email_code_verify-css",
-    "Your verification code ",
-    verification_Address
-  );
-  if (!sendVerificationEmail) {
-    log.Error("Error happened in sending Email!");
+    var viewData = {
+      Message: "An Email sent to your account please verify.",
+    };
+    return res.render("message", viewData);
+  } catch (error) {
+    log.Error("Error happened in create signup!");
     return res
       .status(HttpStatusCode.InternalServerError)
       .send(
         new utils.ErrorHandler(
           "internal/sendEmailAuth",
-          "Error happened in sending email! - " + req.body.email
+          "Error happened in create signup! - " + error
         ).json()
       );
   }
-
-  var viewData = {
-    Message: "An Email sent to your account please verify.",
-  };
-  return res.render("message", viewData);
 };
 
 // Verify Show Signup Handle
@@ -361,14 +371,8 @@ exports.mainPageHandler = async (req, res) => {
 
 // LoginPageHandler creates a handler for logging in
 exports.loginPageHandler = async (req, res) => {
-  const token = req.cookies.token;
-
-  try {
-    await authService.checkVerifyToken(token);
+  if (req.cookies.he && req.cookies.pa && req.cookies.si) {
     res.redirect("/profile");
-  } catch (error) {
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
   }
 
   let gitClientID = appConfig.GITHUB_CLIENT_ID
@@ -474,9 +478,9 @@ exports.loginTelarHandler = async (req, res) => {
       profileChannel,
       langChannel,
     ]);
-
     let currentUserLang = "en";
     log.Error(`langResult.settings ${langResult.settings}`);
+
     const langSettigPath = await authService.getSettingPath(
       foundUser.objectId,
       "lang",
@@ -494,6 +498,7 @@ exports.loginTelarHandler = async (req, res) => {
       };
       await authService.createDefaultLangSetting(userInfoReq);
     }
+
     const tokenModel = {
       oauthProvider: null,
       providerName: "telar",
@@ -503,7 +508,7 @@ exports.loginTelarHandler = async (req, res) => {
         login: foundUser.username,
       },
       organizationList: "Red Gold",
-      name: "email@gmail.com",
+      name: profileResult.email,
       access_token: "ProviderAccessToken", // "token":  ProviderAccessToken
       organizations: "Red Gold",
       claim: {
@@ -595,8 +600,9 @@ exports.checkAdminHandler = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  res.clearCookie("token");
-  res.clearCookie("refreshToken");
+  res.clearCookie("he");
+  res.clearCookie("pa");
+  res.clearCookie("si");
   var viewData = {
     Message: "User LogOut successfully.",
   };
@@ -605,21 +611,18 @@ exports.logout = (req, res) => {
 
 // Get Change password Page
 exports.getResetUserPassword = async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("ResetPassHandle: Authentication Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "auth.missingloginAuth",
-          "Missing Authentication"
-        ).json()
-      );
-  }
-
-  const findUser = await authService.findUserByAccessToken(token);
-  if (!findUser) {
+  try {
+    await authService.findUserById(res.locals.user.uid);
+    var viewData = {
+      AppName: appConfig.APP_NAME,
+      ActionForm: "/auth/password/reset",
+      LoginLink: "/auth/login",
+      OrgName: appConfig.ORG_NAME,
+      Title: "Reset User Password",
+      OrgAvatar: appConfig.ORG_AVATAR,
+    };
+    res.render("reset_password", viewData);
+  } catch (error) {
     log.Error("ResetPassHandle: Find User Problem");
     return res
       .status(HttpStatusCode.InternalServerError)
@@ -630,23 +633,13 @@ exports.getResetUserPassword = async (req, res) => {
         ).json()
       );
   }
-
-  var viewData = {
-    AppName: appConfig.APP_NAME,
-    ActionForm: "/auth/password/reset",
-    LoginLink: "/auth/login",
-    OrgName: appConfig.ORG_NAME,
-    Title: "Reset User Password",
-    OrgAvatar: appConfig.ORG_AVATAR,
-  };
-  res.render("reset_password", viewData);
 };
 
 // Change User password
 exports.resetUserPassword = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) {
+    const uid = res.locals.user.uid;
+    if (!uid) {
       log.Error("ResetPassHandle: Authentication Problem");
       return res
         .status(HttpStatusCode.Unauthorized)
@@ -657,34 +650,20 @@ exports.resetUserPassword = async (req, res) => {
           ).json()
         );
     }
-    const resetUserPassword = await authService.changeUserPasswordByAccessToken(
+    await authService.changeUserPasswordByUserId(
       req.body.oldPassword,
-      token,
+      uid,
       req.body.newPassword
     );
-    if (!resetUserPassword) {
-      res.clearCookie("token");
-      res.clearCookie("refreshToken");
-      log.Error("ResetPassHandle: Find User Problem");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "missingResetPassword",
-            "Missing Reset Password"
-          ).json()
-        );
-    }
-
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
-
+    res.clearCookie("he");
+    res.clearCookie("pa");
+    res.clearCookie("si");
     var viewData = {
       Message: "change password sucessfully.",
     };
     return res.render("message", viewData);
   } catch (error) {
-    log.Error("ResetPassHandle: An Error Occurred");
+    log.Error("ResetPassHandle: An Error Occurred") + error;
     return res
       .status(HttpStatusCode.BadRequest)
       .send(
@@ -864,14 +843,11 @@ exports.forgetPasswordwithCodeFormHandler = async (req, res) => {
   // const checkCode = authService.checkCode(user.objectId)
 
   try {
-    const changePasswordByToken = await authService.changeUserPasswordByCode(
-      user,
-      newPassword,
-      token
-    );
+    await authService.changeUserPasswordByCode(user, newPassword, token);
     await authService.emptyTokenCode(user.objectId);
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    res.clearCookie("he");
+    res.clearCookie("pa");
+    res.clearCookie("si");
 
     var viewData = {
       Message: "change password sucessfully.",
@@ -1032,48 +1008,32 @@ exports.getForgetPassword = async (req, res) => {
 // ChangePasswordHandler creates a handler for logging in
 exports.changePasswordHandler = async (req, res) => {
   try {
-    //TODO: Not Empty token!!! and res.clear >> not exist token!!
-    const token = req.cookies.token;
-    if (!token) {
-      log.Error("changePassHandle: Authentication Problem");
+    const uid = res.locals.user.uid;
+    if (!uid) {
+      log.Error("ResetPassHandle: Authentication Problem");
       return res
         .status(HttpStatusCode.Unauthorized)
         .send(
           new utils.ErrorHandler(
-            "auth.changePassHandle",
+            "auth.missingloginAuth",
             "Missing Authentication"
           ).json()
         );
     }
-    const changePasswordByToken =
-      await authService.changeUserPasswordByAccessToken(
-        req.body.oldPassword,
-        token,
-        req.body.newPassword
-      );
-
-    if (!changePasswordByToken) {
-      res.clearCookie("token");
-      res.clearCookie("refreshToken");
-      log.Error("changePassHandle: Find User Problem");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "missingChangePassHandle",
-            "Missing Change Password"
-          ).json()
-        );
-    }
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
-
+    await authService.changeUserPasswordByUserId(
+      req.body.oldPassword,
+      uid,
+      req.body.newPassword
+    );
+    res.clearCookie("he");
+    res.clearCookie("pa");
+    res.clearCookie("si");
     var viewData = {
       Message: "change password sucessfully.",
     };
     return res.render("message", viewData);
   } catch (error) {
-    log.Error(`changePassHandle: An Error Occurred ${error}`);
+    log.Error("ResetPassHandle: An Error Occurred") + error;
     return res
       .status(HttpStatusCode.BadRequest)
       .send(

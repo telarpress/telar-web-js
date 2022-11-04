@@ -6,34 +6,8 @@ const log = require("../../../core/utils/errorLogger");
 
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-    if (currentUserId == null || ownerUserId != currentUserId) {
-      log.Error("[CreateUserSettingHandle] Can not get current user");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "setting.invalidCurrentUser",
-            "Can not get current user"
-          ).json()
-        );
-    }
-
     await userSettingService.saveManyUserSetting(
       type,
       creationDate,
@@ -43,7 +17,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 
     return await res
       .status(HttpStatusCode.OK)
-      .send({ objectId: currentUserId })
+      .send({ objectId: ownerUserId })
       .json();
   } catch (error) {
     log.Error("Save UserSetting Error " + error);
@@ -60,22 +34,9 @@ exports.createSettingGroupHandle = async function (req, res) {
 
 // UpdateUserSettingHandle handle create a new userSetting
 exports.updateUserSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[UpdateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
+    const currentUserId = res.locals.user.uid;
 
     if (currentUserId == null || ownerUserId != currentUserId) {
       log.Error("[UpdateUserSettingHandle] Can not get current user");
@@ -145,22 +106,9 @@ exports.updateUserSettingHandle = async function (req, res) {
 
 // DeleteUserAllSettingHandle handle delete all userSetting
 exports.deleteUserAllSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
-    const userID = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
+    const userID = req.body.userId;
+    const currentUserId = res.locals.user.uid;
 
     if (currentUserId == null || userID != currentUserId)
       res.status(HttpStatusCode.NotFound).end();
@@ -180,20 +128,9 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
   return res.status(HttpStatusCode.OK).send({ objectId: currentUserId }).json();
 };
 exports.getAllUserSetting = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetAllUserSetting] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
   try {
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
+    const userID = req.body.userId;
+    const currentUserId = res.locals.user.uid;
 
     if (currentUserId == null || userID != currentUserId)
       res.status(HttpStatusCode.Unauthorized).end();
@@ -214,7 +151,7 @@ exports.getAllUserSetting = async function (req, res) {
     const userSetting = await userSettingService.getAllUserSetting(
       currentUserId
     );
-    return await res.status(HttpStatusCode.OK).send(userSetting).json().end();
+    return await res.status(HttpStatusCode.OK).send(userSetting);
   } catch (error) {
     if (error == "TokenExpiredError: jwt expired")
       return res.redirect("/auth/login");
@@ -231,20 +168,8 @@ exports.getAllUserSetting = async function (req, res) {
 };
 // GetSettingByUserIds a function invocation to setting by user ids
 exports.getSettingByUserIds = async function (req, res) {
-  // const token = req.cookies.token;
-  // if (!token) {
-  //   log.Error("[GetSettingByUserIds] Can not get current user");
-  //   return res
-  //     .status(HttpStatusCode.Unauthorized)
-  //     .send(
-  //       new utils.ErrorHandler(
-  //         "setting.invalidCurrentUser",
-  //         "Can not get current user"
-  //       ).json()
-  //     );
-  // }
-
   const { userIds, type } = req.body;
+  console.log(req.body);
   try {
     const foundUsersSetting = await userSettingService.findSettingByUserIds(
       userIds,

@@ -11,21 +11,10 @@ const { validate: uuidValidate } = require("uuid");
 const { default: axios } = require("axios");
 // ReadMyProfileHandle a function invocation to read authed user profile
 exports.readMyProfileHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("GetProfileHandle: Get Profile Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingGetProfile",
-          "Missing Get Profile"
-        ).json()
-      );
-  }
   try {
-    const findProfile = await profileService.findProfileByAccessToken(token);
-    return res.status(HttpStatusCode.OK).send(findProfile).json();
+    const objectId = res.locals.user.uid;
+    const findProfile = await profileService.getProfileById(objectId);
+    return res.status(HttpStatusCode.OK).send(findProfile);
   } catch (error) {
     if (error == "TokenExpiredError: jwt expired")
       return res.redirect("/auth/login");
@@ -60,8 +49,7 @@ exports.getProfileData = async function (req, res) {
 
 // GetBySocialName get user profile by social name
 exports.getBySocialName = async function (req, res) {
-  const socialName = req.params.name;
-  if (!socialName) {
+  if (!req.params.name) {
     log.Error("GetBySocialName: Social name is required!");
     return res
       .status(HttpStatusCode.BadRequest)
@@ -73,10 +61,10 @@ exports.getBySocialName = async function (req, res) {
       );
   }
   try {
-    const foundUser = await profileService.findBySocialName(socialName);
+    const foundUser = await profileService.findBySocialName(req.params.name);
 
     if (!foundUser) {
-      log.Error("[GetBySocialName] Could not find user " + socialName);
+      log.Error("[GetBySocialName] Could not find user " + req.params.name);
       return res
         .status(HttpStatusCode.NotFound)
         .send(
@@ -86,7 +74,7 @@ exports.getBySocialName = async function (req, res) {
           ).json()
         );
     }
-    return res.status(HttpStatusCode.OK).send(foundUser).json();
+    return res.status(HttpStatusCode.OK).send(foundUser);
   } catch (error) {
     log.Error(`findBySocialName ${error}`);
 
@@ -152,73 +140,9 @@ exports.updateLastSeen = async function (req, res) {
   }
 };
 
-// UpdateProfileHandle a function invocation
-exports.updateProfileHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("GetProfileHandle: Get Profile Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingGetProfile",
-          "Missing Get Profile"
-        ).json()
-      );
-  }
-  if (req.body.userId != req.body.profile.objectId) {
-    log.Error("[UpdateProfileHandle] Find Profile With This userId Problem ");
-    return res
-      .status(HttpStatusCode.BadRequest)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingUpdateProfile",
-          "Missing Update Profile, Error happened while parsing query!"
-        ).json()
-      );
-  }
-  try {
-    {
-      const findProfile = await profileService.updateProfile(req.body.profile);
-      return res.status(HttpStatusCode.OK);
-    }
-  } catch (error) {
-    log.Error(`UpdateProfileHandle: Update Profile Problem ${error}`);
-    return res
-      .status(HttpStatusCode.BadRequest)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingUpdateProfile",
-          "Missing Update Profile"
-        ).json()
-      );
-  }
-
-  //TODO:  createToken Write session on cookie
-  // const session = createToken(tokenModel);
-  // if (!session) {
-  //   log.Error("Error creating session: %s", err.Error());
-  //   return c
-  //     .Status(HttpStatusCode.InternalServerError)
-  //     .JSON(
-  //       utils.ErrorHandler(
-  //         "internal/createToken",
-  //         "Internal server error creating token!"
-  //       )
-  //     );
-  // }
-
-  // // Write session on cookie
-  // writeSessionOnCookie(session, authConfig);
-  // log.Info("\nSession is created: %s \n", session);
-
-  // return res.status(HttpStatusCode.OK).send(findProfile).json();
-};
-
 // Get user profile
 exports.readProfileHandle = async function (req, res) {
-  const userId = req.params.userId;
-  if (!userId) {
+  if (!req.params.userId) {
     log.Error("ReadProfileHandle: Get Profile Problem");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -231,8 +155,8 @@ exports.readProfileHandle = async function (req, res) {
   }
 
   try {
-    const findProfile = await profileService.getProfileById(userId);
-    return res.status(HttpStatusCode.OK).send(findProfile).json();
+    const findProfile = await profileService.getProfileById(req.params.userId);
+    return res.status(HttpStatusCode.OK).send(findProfile);
   } catch (error) {
     log.Error(`readProfileHandle: Get Profile Problem ${error}`);
     return res
@@ -248,8 +172,7 @@ exports.readProfileHandle = async function (req, res) {
 
 // GET Profile
 exports.queryUserProfileHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
+  if (!res.locals.user.uid) {
     log.Error("GetProfileHandle: Get Profile Problem");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -261,8 +184,10 @@ exports.queryUserProfileHandle = async function (req, res) {
       );
   }
   try {
-    const findProfile = await profileService.findProfileByAccessToken(token);
-    return res.status(HttpStatusCode.OK).send(findProfile).json();
+    const findProfile = await profileService.getProfileById(
+      res.locals.user.uid
+    );
+    return res.status(HttpStatusCode.OK).send(findProfile);
   } catch (error) {
     if (error == "TokenExpiredError: jwt expired")
       return res.redirect("/auth/login");
@@ -327,16 +252,6 @@ exports.getProfileById = async function (req, res) {
 
 // POST /profile
 exports.createDtoProfileHandle = async (req, res) => {
-  let hash = req.header(appConfig.HMAC_NAME);
-  const HMAC_Validation = await hmac.validate(
-    JSON.stringify(req.body),
-    appConfig.HMAC_KEY,
-    hash
-  );
-
-  if (!HMAC_Validation)
-    return res.send(`Error while Save User: ${HMAC_Validation}`);
-
   if (req.body) {
     // if (validate_setData(req.body)) {
     profileService.createDtoProfileHandle(req.body);
@@ -362,7 +277,6 @@ exports.createDtoProfileHandle = async (req, res) => {
 // IncreaseFollowCount a function invocation
 exports.increaseFollowCount = async function (req, res) {
   // params from /follow/inc/:inc/:userId
-
   const userId = req.params.userId;
 
   if (userId == "") {
@@ -533,19 +447,9 @@ exports.dispatchProfilesHandle = async function (req, res) {
       payload: { actionRoomPayload },
     };
 
-    const token = req.cookies.token;
-    if (!token) {
-      log.Error("UpdateProfileHandle: Update Profile Problem");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "profile.missingUpdateProfile",
-            "Missing Update Profile"
-          ).json()
-        );
-    }
-    const currentUser = await profileService.findProfileByAccessToken(token);
+    const currentUser = await profileService.getProfileById(
+      res.locals.user.uid
+    );
 
     if (!(currentUser.objectId === req.body.objectId)) {
       log.Error("[DispatchProfilesHandle] Can not get current user");
@@ -588,7 +492,6 @@ async function dispatchAction(action, userInfoInReq) {
 
   try {
     const actionBytes = action.payload.actionRoomPayload.users.mappedUsers;
-    console.log(actionBytes);
     // Create user headers for http request
     const config = {
       headers: {
@@ -613,6 +516,7 @@ exports.initProfileIndexHandle = async function (req, res) {
   let postIndexMap = [];
   postIndexMap["fullName"] = "text";
   postIndexMap["objectId"] = 1;
+  postIndexMap["socialName"] = "text";
   try {
     await profileService.createUserProfileIndex(postIndexMap);
   } catch (error) {
@@ -631,54 +535,99 @@ exports.initProfileIndexHandle = async function (req, res) {
 
 // PUT update /profile
 exports.updateProfile = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("UpdateProfileHandle: Update Profile Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingUpdateProfile",
-          "Missing Update Profile"
-        ).json()
-      );
-  }
-  const {
-    objectId,
-    fullName,
-    socialName,
-    avatar,
-    banner,
-    tagLine,
-    created_date,
-    last_updated,
-    lastSeen,
-    email,
-    birthday,
-    webUrl,
-    country,
-    address,
-    school,
-    liveLocation,
-    phone,
-    lang,
-    companyName,
-    voteCount,
-    shareCount,
-    followCount,
-    followerCount,
-    postCount,
-    facebookId,
-    instagramId,
-    twitterId,
-    linkedInId,
-    accessUserList,
-    permission,
-  } = req.body;
-  const profile = await profileService.findProfileByAccessToken(token);
+  try {
+    const {
+      objectId,
+      fullName,
+      socialName,
+      avatar,
+      banner,
+      tagLine,
+      created_date,
+      last_updated,
+      lastSeen,
+      email,
+      birthday,
+      webUrl,
+      country,
+      address,
+      school,
+      liveLocation,
+      phone,
+      lang,
+      companyName,
+      voteCount,
+      shareCount,
+      followCount,
+      followerCount,
+      postCount,
+      facebookId,
+      instagramId,
+      twitterId,
+      linkedInId,
+      accessUserList,
+      permission,
+    } = req.body;
+    const profile = await profileService.getProfileById(res.locals.user.uid);
 
-  if (!(profile.objectId === objectId)) {
-    log.Error("updateProfile: Update Profile Problem");
+    if (!(profile.objectId === objectId)) {
+      log.Error("updateProfile: Update Profile objectId Problem");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "profile.missingUpdateProfile",
+            "Missing Update Profile"
+          ).json()
+        );
+    }
+    profile.objectId = objectId;
+    profile.fullName = fullName;
+    profile.socialName = socialName;
+    profile.avatar = avatar;
+    profile.banner = banner;
+    profile.tagLine = tagLine;
+    profile.created_date = created_date;
+    profile.last_updated = last_updated;
+    profile.lastSeen = lastSeen;
+    profile.email = email;
+    profile.birthday = birthday;
+    profile.webUrl = webUrl;
+    profile.country = country;
+    profile.address = address;
+    profile.school = school;
+    profile.liveLocation = liveLocation;
+    profile.phone = phone;
+    profile.lang = lang;
+    profile.companyName = companyName;
+    profile.voteCount = voteCount;
+    profile.shareCount = shareCount;
+    profile.followCount = followCount;
+    profile.followerCount = followerCount;
+    profile.postCount = postCount;
+    profile.facebookId = facebookId;
+    profile.instagramId = instagramId;
+    profile.twitterId = twitterId;
+    profile.linkedInId = linkedInId;
+    profile.accessUserList = accessUserList;
+    profile.permission = permission;
+
+    const updatedProfile = await profileService.updateProfile(profile);
+
+    if (!updatedProfile) {
+      log.Error("updateProfile: Update Profile Problem");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "profile.missingUpdateProfile",
+            "Missing Update Profile"
+          ).json()
+        );
+    }
+    res.send(updatedProfile);
+  } catch (error) {
+    log.Error("updateProfile: Update Profile Problem" + error);
     return res
       .status(HttpStatusCode.BadRequest)
       .send(
@@ -688,51 +637,6 @@ exports.updateProfile = async function (req, res) {
         ).json()
       );
   }
-  profile.objectId = objectId;
-  profile.fullName = fullName;
-  profile.socialName = socialName;
-  profile.avatar = avatar;
-  profile.banner = banner;
-  profile.tagLine = tagLine;
-  profile.created_date = created_date;
-  profile.last_updated = last_updated;
-  profile.lastSeen = lastSeen;
-  profile.email = email;
-  profile.birthday = birthday;
-  profile.webUrl = webUrl;
-  profile.country = country;
-  profile.address = address;
-  profile.school = school;
-  profile.liveLocation = liveLocation;
-  profile.phone = phone;
-  profile.lang = lang;
-  profile.companyName = companyName;
-  profile.voteCount = voteCount;
-  profile.shareCount = shareCount;
-  profile.followCount = followCount;
-  profile.followerCount = followerCount;
-  profile.postCount = postCount;
-  profile.facebookId = facebookId;
-  profile.instagramId = instagramId;
-  profile.twitterId = twitterId;
-  profile.linkedInId = linkedInId;
-  profile.accessUserList = accessUserList;
-  profile.permission = permission;
-
-  const updatedProfile = await profileService.updateProfile(profile);
-
-  if (!updatedProfile) {
-    log.Error("updateProfile: Update Profile Problem");
-    return res
-      .status(HttpStatusCode.BadRequest)
-      .send(
-        new utils.ErrorHandler(
-          "profile.missingUpdateProfile",
-          "Missing Update Profile"
-        ).json()
-      );
-  }
-  res.send(updatedProfile);
 };
 
 // Increase share count

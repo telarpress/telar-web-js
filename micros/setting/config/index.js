@@ -7,7 +7,7 @@ exports.appConfig = {
   DB_TYPE: config.environment.db_type,
   DB_URI: process.env.MONGO_HOST,
   ACCESS_TPK: process.env.ACCESS_TOKEN_PRIVATE_KEY,
-  HMAC_NAME: process.env.HMAC_NAME,
+  HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
 };
 

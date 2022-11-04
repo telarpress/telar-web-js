@@ -6,9 +6,8 @@ const {
 } = require("../../../core/middleware/authcookie/authcookie");
 
 const { authHMAC } = require("../../../core/middleware/authHMAC/");
-
-const hmacCookieHandlers = () => (req, res, next) => {
-  if (req.get(appConfig.HMAC_NAME) !== undefined) {
+const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
+  if (req.get(appConfig.HMAC_NAME) !== undefined || !hmacWithCookie) {
     return authHMAC(req, res, next);
   }
   return authCookie(req, res, next);
@@ -19,17 +18,17 @@ const handlers = require("../handlers");
 // Router
 notificationsRouter.post(
   "/notifications/check",
-  hmacCookieHandlers,
+  hmacCookieHandlers(false),
   handlers.checkNotifyEmailHandle
 );
 notificationsRouter.post(
   "/notifications/",
-  hmacCookieHandlers,
+  hmacCookieHandlers(false),
   handlers.createNotificationHandle
 );
 notificationsRouter.put(
   "/notifications/",
-  hmacCookieHandlers,
+  hmacCookieHandlers(false),
   handlers.updateNotificationHandle
 );
 notificationsRouter.put(

@@ -12,9 +12,6 @@ exports.saveManyUserSetting = async function (
   settingOwnerUserId,
   settingList
 ) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  if (decode.id != settingOwnerUserId) return Error("Error in Authentication");
-
   // TODO: Use  canonical Base64 UUID
   // const mUUID = MUUID.mode("canonical");
 
@@ -73,8 +70,8 @@ exports.deleteUserSettingByOwnerUserId = async function (userId) {
   return UserSetting.deleteMany({ ownerUserId: userId });
 };
 
-exports.findSettingByUserIds = async function (userIds, type, token) {
-  return UserSetting.find({
+exports.findSettingByUserIds = async function (userIds, type) {
+  return await UserSetting.find({
     ownerUserId: { $in: userIds.split(",") },
     type: type,
   });

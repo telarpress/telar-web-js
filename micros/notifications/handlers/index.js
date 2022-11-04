@@ -22,7 +22,7 @@ exports.checkNotifyEmailHandle = async function (req, res) {
       recIds.push(notification.notifyRecieverUserId);
     });
 
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user;
     if (!currentUserId || currentUserId == null) {
       log.Error("[CheckNotifyEmailHandle] Can not get current user");
       return res
@@ -180,8 +180,8 @@ function getSettingPath(userId, settingType, settingKey) {
 // CreateNotificationHandle handle create a new notification
 exports.createNotificationHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
-    if (!currentUserId || currentUserId == null) {
+    const currentUser = res.locals.user;
+    if (!currentUser || currentUser == null) {
       log.Error("[CreateNotificationHandle] Can not get current user");
       return res
         .status(HttpStatusCode.Unauthorized)
@@ -275,8 +275,8 @@ exports.createNotificationHandle = async function (req, res) {
 // UpdateNotificationHandle handle update a notification
 exports.updateNotificationHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
-    if (!currentUserId || currentUserId == null) {
+    const currentUser = res.locals.user;
+    if (!currentUser || currentUser == null) {
       log.Error("[UpdateNotificationHandle] Can not get current user");
       return res
         .status(HttpStatusCode.Unauthorized)
@@ -365,7 +365,7 @@ exports.seenNotificationHandle = async function (req, res) {
   }
 
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[SeenNotificationHandle] Can not get current user");
       return res
@@ -397,7 +397,7 @@ exports.seenNotificationHandle = async function (req, res) {
 // SeenAllNotificationsHandle handle set all notifications seen
 exports.seenAllNotificationsHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[SeenAllNotificationHandle] Can not get current user");
       return res
@@ -456,7 +456,7 @@ exports.deleteNotificationHandle = async function (req, res) {
   }
 
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[DeleteNotificationHandle] Can not get current user");
       return res
@@ -491,7 +491,7 @@ exports.deleteNotificationHandle = async function (req, res) {
 // DeleteNotificationByUserIdHandle handle delete a Notification but userId
 exports.deleteNotificationByUserIdHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[DeleteNotificationByUserIdHandle] Can not get current user");
       return res
@@ -523,7 +523,7 @@ exports.deleteNotificationByUserIdHandle = async function (req, res) {
 // GetNotificationsByUserIdHandle handle query on notification
 exports.getNotificationsByUserIdHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[GetNotificationsByUserIdHandle] Can not get current user");
       return res
@@ -590,7 +590,7 @@ exports.getNotificationHandle = async function (req, res) {
 
   try {
     const foundNotification = notificationService.findById(notificationUUID);
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user;
     if (!currentUserId || currentUserId == null) {
       log.Error("[GetNotificationHandle] Can not get current user");
       return res

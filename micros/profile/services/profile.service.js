@@ -47,20 +47,24 @@ exports.findBySocialName = function (socialName) {
   return UserProfile.findOne({ socialName: socialName });
 };
 
-exports.getProfileById = function (userId) {
-  return UserProfile.findOne({ objectId: userId });
+exports.getProfileById = async function (userId) {
+  return await UserProfile.findOne({ objectId: userId });
 };
 
 exports.createUserProfileIndex = async function (postIndexMap) {
   return await UserProfile.createIndexes(postIndexMap);
 };
-exports.findProfileByAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return await UserProfile.findOne({ objectId: decode.id });
+
+exports.getIdFromAccessToken = async function (token) {
+  const jwtOptions = { algorithm: "ES256" };
+  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  return await decode.StandardClaims.id;
 };
+
 exports.checkAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return await UserProfile.findOne({ objectId: decode.id });
+  const jwtOptions = { algorithm: "ES256" };
+  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  return await UserProfile.findOne({ objectId: decode.StandardClaims.id });
 };
 exports.getProfiles = function () {
   return UserProfile.find();

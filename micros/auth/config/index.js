@@ -55,7 +55,6 @@ exports.appConfig = {
   ACCESS_TPK: process.env.ACCESS_TOKEN_PRIVATE_KEY, //Short-lived (minutes) JWT Auth Token
   REFRESH_TPK: process.env.REFRESH_TOKEN_PRIVATE_KEY, //Longer-lived (hours/days) JWT Refresh Token
   KEY: decodeBase64(process.env.KEY),
-  KEYPUB: decodeBase64(process.env.KEYPUB),
   COOKIE_EXPIRY: process.env.COOKIE_EXPIRY,
   SALT: process.env.SALT,
   SMTP_EMAIL_USER: process.env.EMAIL_USER,

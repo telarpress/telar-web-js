@@ -10,7 +10,7 @@ const { default: axios } = require("axios");
 // CreateActionRoomHandle handle create a new actionRoom
 exports.createActionRoomHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[CreateActionRoomHandle] Can not get current user");
       return res
@@ -113,7 +113,7 @@ exports.dispatchHandle = async function (req, res) {
 
 // UpdateActionRoomHandle handle create a new actionRoom
 exports.updateActionRoomHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[UpdateActionRoomHandle] Can not get current user");
     return res
@@ -168,7 +168,7 @@ exports.updateActionRoomHandle = async function (req, res) {
 
 // SetAccessKeyHandle handle create a new actionRoom
 exports.setAccessKeyHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[SetAccessKeyHandle] Can not get current user");
     return res
@@ -211,7 +211,7 @@ exports.deleteActionRoomHandle = async function (req, res) {
       );
   }
 
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[DeleteActionRoomHandle] Can not get current user");
     return res
@@ -246,7 +246,7 @@ exports.deleteActionRoomHandle = async function (req, res) {
 
 // GetAccessKeyHandle handle get access key
 exports.getAccessKeyHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[GetAccessKeyHandle] Can not get current user");
     return res
@@ -290,7 +290,7 @@ exports.verifyAccessKeyHandle = async function (req, res) {
       );
   }
 
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[VerifyAccessKeyHandle] Can not get current user");
     return res

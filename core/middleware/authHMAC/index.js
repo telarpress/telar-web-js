@@ -9,14 +9,12 @@ exports.authHMAC = (req, res, next) => {
     // Check if the HMAC header contains content
     const headerName = appConfig.HMAC_NAME;
     const auth = req.get(headerName);
-
     if (auth.length < 1) {
       log.Error("Unauthorized! HMAC not presented!");
       return res
         .status(HttpStatusCode.Unauthorized)
         .send("Unauthorized! HMAC not presented!");
     }
-
     const validattion = validate(req.body, appConfig.HMAC_KEY, auth);
     if (!validattion) {
       log.Error("Can not validated HMAC");
@@ -29,7 +27,6 @@ exports.authHMAC = (req, res, next) => {
           ).json()
         );
     }
-
     if (req.get("uid") === undefined) {
       log.Error(
         "[HMAC] User id is not provided. In this case user context will be set empty!"
@@ -49,7 +46,7 @@ exports.authHMAC = (req, res, next) => {
       username: req.header["email"],
       socialName: req.header["socialName"],
       displayName: req.header["displayName"],
-      avatar: req.header["avatar"],
+      // avatar: req.header["avatar"],
       banner: req.header["banner"],
       tagLine: req.header["tagLine"],
       createdDate: createdDate,

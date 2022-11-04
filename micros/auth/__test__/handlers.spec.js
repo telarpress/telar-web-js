@@ -12,8 +12,8 @@ const gRecaptchaResponse = "true";
 
 describe("Signup", () => {
   it("signupPageHandler", () => {
-    const d = signupPageHandler();
-    console.log(d);
+    const signupPageHandlerTest = signupPageHandler();
+    console.log(signupPageHandlerTest);
 
     expect(signupPageHandler).toContain("m");
   });

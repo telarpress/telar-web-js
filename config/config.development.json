@@ -128,7 +128,7 @@
     "smtp_email_host": "smtp.mailtrap.io",
     "smtp_email_port": "2525",
     "write_timeout": "10s",
-    "cookie_root_domain": ".telar.dev",
+    "cookie_root_domain": ".localhost",
     "hmac_header_name": "X-Cloud-Signature",
     "gateway": "https://social.faas.telar.dev",
     "internal_gateway": "http://gateway.openfaas:8080/function",

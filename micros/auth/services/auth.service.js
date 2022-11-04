@@ -107,39 +107,39 @@ exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
 };
 
 exports.getUserProfileByID = async function (reqUserId) {
-  const profileURL = `/profile/dto/id/${reqUserId}`;
-  let axiosConfig = {
-    headers: {
-      "Content-Type": "application/json;charset=UTF-8",
-      "user-agent": "GetUserProfile",
-    },
-  };
+  let userHeaders = { uid: reqUserId };
+  try {
+    const url = `/profile/dto/id/${reqUserId}`;
+    const model = {
+      id: reqUserId,
+    };
+    const foundProfile = await microCall("get", model, url, userHeaders);
 
-  const foundProfile = await axios.get(profileURL, axiosConfig);
-
-  if (!foundProfile) {
-    if (appConfig.Node_ENV === "development") {
-      if (foundProfile.response) {
-        // The client was given an error response (5xx, 4xx)
-        console.log(foundProfile.response.data);
-        console.log(foundProfile.response.status);
-        console.log(foundProfile.response.headers);
-      } else if (foundProfile.request) {
-        // The client never received a response, and the request was never left
-        console.log(foundProfile.request);
-      } else {
-        // Anything else
-        console.log("Error", foundProfile.message);
+    if (!foundProfile) {
+      if (appConfig.Node_ENV === "development") {
+        if (foundProfile.response) {
+          // The client was given an error response (5xx, 4xx)
+          console.log(foundProfile.response.data);
+          console.log(foundProfile.response.status);
+          console.log(foundProfile.response.headers);
+        } else if (foundProfile.request) {
+          // The client never received a response, and the request was never left
+          console.log(foundProfile.request);
+        } else {
+          // Anything else
+          console.log("Error", foundProfile.message);
+        }
       }
+      if (foundProfile.response.status == 404)
+        console.log("NotFoundHTTPStatusError: " + foundProfile);
+
+      console.log(`microCall ${profileURL} -  ${foundProfile.message}`);
+      return Error("getUserProfileByID/microCall");
     }
-    if (foundProfile.response.status == 404)
-      console.log("NotFoundHTTPStatusError: " + foundProfile);
-
-    console.log(`microCall ${profileURL} -  ${foundProfile.message}`);
-    return Error("getUserProfileByID/microCall");
+    return foundProfile;
+  } catch (error) {
+    return `Cannot send request to /setting/dto/ids - ${error}`;
   }
-
-  return foundProfile.data;
 };
 
 // readLanguageSettingAsync Read language setting async
@@ -341,6 +341,25 @@ exports.changeUserPasswordByAccessToken = async function (
   }
 };
 
+exports.changeUserPasswordByUserId = async function (
+  oldPassword,
+  objectId,
+  reqPassword
+) {
+  try {
+    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
+    let findUser = await UserAuth.findOne({ objectId });
+    if (!bcrypt.compareSync(oldPassword, findUser.password)) {
+      throw new Error("Passwords Not Match");
+    }
+    const hashPassword = await bcrypt.hash(reqPassword, salt);
+    findUser.password = hashPassword;
+    findUser.save();
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 exports.changeUserPasswordByCode = async function (user, newPassword, code) {
   const token = await UserToken.findOne({ objectId: user.objectId });
   if (token.code != code) {
@@ -367,10 +386,6 @@ exports.createToken = async function (objectId) {
     { code: crypto.randomBytes(32).toString("hex").substring(0, 6) }
   );
   return await UserToken.findOne({ objectId: objectId });
-  // return await new UserToken({
-  //   objectId: reqUserId,
-  //   code: crypto.randomBytes(32).toString("hex"),
-  // }).save();
 };
 
 exports.checkCode = async function (objectId) {
