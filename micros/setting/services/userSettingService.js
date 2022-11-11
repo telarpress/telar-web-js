@@ -6,37 +6,14 @@ const UserSetting = require("../models/UserSetting");
 const { v4: uuidv4 } = require("uuid");
 // const MUUID = require("uuid-mongodb");
 
-exports.saveManyUserSetting = async function (
-  settingType,
-  settingCreationDate,
-  settingOwnerUserId,
-  settingList
-) {
-  // TODO: Use  canonical Base64 UUID
-  // const mUUID = MUUID.mode("canonical");
+exports.saveManyUserSetting = async function (userSettingList) {
+  for (const setting of userSettingList) {
+    if (setting.objectId == "") setting.objectId = uuidv4();
 
-  settingList.forEach((setting) => {
-    let uuid = uuidv4();
-    let createdDateValue;
-    //let uuid = MUUID.v1();
-    if (settingCreationDate == 0) {
-      createdDateValue = Math.floor(Date.now() / 1000);
-    } else {
-      createdDateValue = settingCreationDate;
-    }
-    let newUserSetting = new UserSetting({
-      objectId: uuid,
-      // ownerUserId: MUUID.from(settingOwnerUserId),
-      ownerUserId: settingOwnerUserId,
-      createdDate: createdDateValue,
-      name: setting.name,
-      value: setting.value,
-      type: settingType,
-      isSystem: setting.isSystem,
-    });
-
-    return UserSetting(newUserSetting).save();
-  });
+    if (setting.created_date == "")
+      setting.created_date = Math.floor(Date.now() / 1000);
+    return UserSetting(setting).save();
+  }
 };
 exports.updateUserSettingsById = async function (userSetting) {
   let bulkItem = [];
@@ -84,23 +61,24 @@ exports.findIdByAccessToken = async function (token) {
 
 exports.getAllUserSetting = async function (userId) {
   const userSetting = await UserSetting.find({ ownerUserId: userId });
+
   let groupSettingsMap = [];
   userSetting.forEach((setting) => {
-    let settingModel = new Object({
+    let settingModel = {
       objectId: setting.objectId,
       name: setting.name,
       value: setting.value,
       isSystem: setting.isSystem,
-    });
+    };
     let type = [setting.type];
     groupSettingsMap = groupSettingsMap.concat(type, settingModel);
   });
-  let groupSettingsModel = new Object({
-    Type: userSetting[0].type,
-    CreatedDate: userSetting[0].createdDate,
-    OwnerUserId: userSetting[0].ownerUserId,
-    List: groupSettingsMap,
-  });
+  let groupSettingsModel = {
+    type: userSetting[0].type,
+    createdDate: userSetting[0].created_date,
+    ownerUserId: userSetting[0].ownerUserId,
+    list: groupSettingsMap,
+  };
 
   return groupSettingsModel;
 };

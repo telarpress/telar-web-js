@@ -36,14 +36,14 @@ exports.createActionRoomHandle = async function (req, res) {
         );
     }
 
-    let newActionRoom = new Object({
+    let newActionRoom = {
       objectId: model.objectId,
       ownerUserId: currentUserId,
       privateKey: model.privateKey,
       accessKey: model.accessKey,
       status: model.status,
       created_date: model.createdDate,
-    });
+    };
 
     const createActionRoom = await actionRoomService.saveActionRoom(
       newActionRoom
@@ -140,14 +140,14 @@ exports.updateActionRoomHandle = async function (req, res) {
         );
     }
 
-    let updatedActionRoom = new Object({
+    let updatedActionRoom = {
       objectId: model.objectId,
       ownerUserId: currentUserId,
       privateKey: model.privateKey,
       accessKey: model.accessKey,
       status: model.status,
-      createdDate: model.createdDate,
-    });
+      created_date: model.createdDate,
+    };
 
     const updatedActionRoomReult = await actionRoomService.updateActionRoomById(
       updatedActionRoom
@@ -229,7 +229,14 @@ exports.deleteActionRoomHandle = async function (req, res) {
       actionRoomId
     );
     if (deleteAction.deletedCount == 0)
-      return res.status(HttpStatusCode.NotFound).end();
+      return res
+        .status(HttpStatusCode.NotFound)
+        .send(
+          new utils.ErrorHandler(
+            "actionRoom.actionRoomService",
+            "There is no action when removing the action room!"
+          ).json()
+        );
     return res.status(HttpStatusCode.OK).end();
   } catch (error) {
     log.Error("Delete ActionRoom Error " + error);

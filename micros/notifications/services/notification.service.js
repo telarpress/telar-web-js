@@ -3,9 +3,10 @@ const jwt = require("jsonwebtoken");
 const Notification = require("../models/Notification");
 const { v4: uuidv4 } = require("uuid");
 const { default: axios } = require("axios");
+const GateKeeper = require("../utils/hmac");
 // const MUUID = require("uuid-mongodb");
 const hmac = require("../../../core/middleware/authHMAC/authHMAC");
-
+const numberOfItems = 10;
 // GetLastNotifications find by owner user id
 exports.getLastNotifications = async function () {
   const sortMap = {};
@@ -20,26 +21,26 @@ exports.getLastNotifications = async function () {
 async function findNotificationsReceiver(filter, limit, skip, sort) {
   var pipeline = [];
 
-  let matchOperator = [];
+  let matchOperator = {};
   matchOperator["$match"] = filter;
 
-  let sortOperator = [];
+  let sortOperator = {};
   sortOperator["$sort"] = sort;
   pipeline.push(matchOperator, sortOperator);
 
   if (skip > 0) {
-    let skipOperator = [];
+    let skipOperator = {};
     skipOperator["$skip"] = skip;
     pipeline.push(skipOperator);
   }
 
   if (limit > 0) {
-    let limitOperator = [];
+    let limitOperator = {};
     limitOperator["$limit"] = limit;
     pipeline.push(limitOperator);
   }
 
-  let lookupOperator = [];
+  let lookupOperator = {};
   lookupOperator["$lookup"] = {
     localField: "notifyRecieverUserId",
     from: "userProfile",
@@ -47,11 +48,11 @@ async function findNotificationsReceiver(filter, limit, skip, sort) {
     as: "userinfo",
   };
 
-  let unwindOperator = [];
+  let unwindOperator = {};
   unwindOperator["$unwind"] = "$userinfo";
 
-  let projectOperator = [];
-  let project = [];
+  let projectOperator = {};
+  let project = {};
 
   project["objectId"] = 1;
   project["ownerUserId"] = 1;
@@ -77,27 +78,25 @@ async function findNotificationsReceiver(filter, limit, skip, sort) {
 // getUsersSettings Get users settings
 exports.getUsersNotificationSettings = async function (userIds, userInfoInReq) {
   const url = "/setting/dto/ids";
-  let model = models({
+  let model = {
     UserIds: userIds,
     Type: "notification",
-  });
-  let payload = JSON.stringify(model);
+  };
 
   // Create user headers for http request
-  let userHeaders = [];
-  userHeaders["uid"] = userInfoInReq.userId.String();
+  let userHeaders = {};
+  userHeaders["uid"] = userInfoInReq.userId;
   userHeaders["email"] = userInfoInReq.username;
   userHeaders["avatar"] = userInfoInReq.avatar;
   userHeaders["displayName"] = userInfoInReq.displayName;
   userHeaders["role"] = userInfoInReq.systemRole;
 
-  const resData = microCall(post, payload, url, userHeaders);
+  const resData = await microCall(post, model, url, userHeaders);
   if (resData == "") {
     return Error(`Cannot send request to ${url} - ${resData}`);
   }
 
-  let parsedData = [];
-  return parsedData;
+  return resData;
 };
 
 // microCall send request to another function/microservice using cookie validation
@@ -121,9 +120,9 @@ const microCall = async (method, data, url, headers = {}) => {
   try {
     const digest = GateKeeper.sign(JSON.stringify(data), process.env.HMAC_KEY);
     headers["Content-type"] = "application/json";
-    headers[appConfig.HMAC_NAME] = "sha1=" + digest;
+    headers[appConfig.HMAC_NAME] = digest;
 
-    console.log(`\ndigest: sha1=${digest}, header: ${appConfig.HMAC_NAME} \n`);
+    console.log(`\ndigest: ${digest}, header: ${appConfig.HMAC_NAME} \n`);
 
     const result = await axios({
       method: method,
@@ -147,19 +146,19 @@ const microCall = async (method, data, url, headers = {}) => {
 
 // UpdateEmailSent update bulk notification list
 exports.updateEmailSent = async function (notifyIds) {
-  let include = [];
+  let include = {};
   include["$in"] = notifyIds;
 
-  let filter = [];
+  let filter = {};
   filter["objectId"] = include;
 
-  let updateOperator = new updateOperator({
+  let updateOperator = {
     $set: {
       isEmailSent: true,
     },
-  });
+  };
   try {
-    Notification.updateMany(filter, updateOperator);
+    return await Notification.updateMany(filter, updateOperator);
   } catch (error) {
     return error;
   }
@@ -168,25 +167,10 @@ exports.updateEmailSent = async function (notifyIds) {
 };
 
 // SaveNotification save the notification
-exports.saveNotification = function (model, currentUser) {
-  let newNotification = new Notification({
-    objectId: model.objectId,
-    ownerUserId: currentUser.userID,
-    ownerDisplayName: currentUser.displayName,
-    ownerAvatar: currentUser.avatar,
-    title: model.title,
-    description: model.description,
-    URL: model.URL,
-    notifyRecieverUserId: model.notifyRecieverUserId,
-    targetId: model.targetId,
-    isSeen: false,
-    type: model.type,
-    emailNotification: model.emailNotification,
-  });
-
+exports.saveNotification = async function (newNotification) {
   if (!newNotification.objectId) {
     try {
-      newNotification.ObjectId = uuid.NewV4();
+      newNotification.objectId = uuid.NewV4();
     } catch (uuidErr) {
       return uuidErr;
     }
@@ -195,14 +179,14 @@ exports.saveNotification = function (model, currentUser) {
   if (newNotification.CreatedDate == 0) {
     newNotification.CreatedDate = utils.UTCNowUnix();
   }
-  return newNotification.save();
+  return await Notification(newNotification).save();
 };
 
 // UpdateNotificationById update the notification
-exports.updateNotificationById = function (model, currentUser) {
-  let updatedNotification = new Notification({
+exports.updateNotificationById = async function (model, currentUser) {
+  let updatedNotification = {
     objectId: model.objectId,
-    ownerUserId: currentUser.userID,
+    ownerUserId: currentUser.userId,
     ownerDisplayName: currentUser.displayName,
     ownerAvatar: currentUser.avatar,
     title: model.title,
@@ -213,18 +197,18 @@ exports.updateNotificationById = function (model, currentUser) {
     isSeen: model.isSeen,
     type: model.type,
     emailNotification: model.emailNotification,
-  });
+  };
 
   let filter = {
-    ObjectId: updatedNotification.ObjectId,
-    OwnerUserId: updatedNotification.OwnerUserId,
+    objectId: updatedNotification.objectId,
+    ownerUserId: updatedNotification.ownerUserId,
   };
 
   let updateOperator = {
     $set: updatedNotification,
   };
   try {
-    Notification.updateOne(filter, updatedNotification, updateOperator);
+    await Notification.updateOne(filter, updateOperator);
   } catch (error) {
     return error;
   }
@@ -245,7 +229,7 @@ exports.seenNotification = async function (objectId, userId) {
     },
   };
   try {
-    Notification.updateOne(filter, updateOperator);
+    await Notification.updateOne(filter, updateOperator);
   } catch (error) {
     return error;
   }
@@ -256,7 +240,7 @@ exports.seenNotification = async function (objectId, userId) {
 // SeenNotification update all notifications to seen
 exports.seenAllNotifications = async function (userId) {
   let filter = {
-    userId: userId,
+    notifyRecieverUserId: userId,
   };
 
   let updateOperator = {
@@ -265,7 +249,7 @@ exports.seenAllNotifications = async function (userId) {
     },
   };
   try {
-    Notification.updateOne(filter, updateOperator);
+    await Notification.updateOne(filter, updateOperator);
   } catch (error) {
     return error;
   }
@@ -279,11 +263,11 @@ exports.deleteNotificationByOwner = async function (
   notificationId
 ) {
   let filter = {
-    ObjectId: notificationId,
-    NotifyRecieverUserId: notificationReceiverId,
+    objectId: notificationId,
+    notifyRecieverUserId: notificationReceiverId,
   };
   try {
-    Notification.deleteOne(filter, true);
+    await Notification.deleteOne(filter, true);
   } catch (error) {
     return error;
   }
@@ -293,10 +277,10 @@ exports.deleteNotificationByOwner = async function (
 // DeleteNotificationsByUserId delete notifications by userId
 exports.deleteNotificationsByUserId = async function (userId) {
   let filter = {
-    userId: userId,
+    notifyRecieverUserId: userId,
   };
   try {
-    Notification.deleteMany(filter);
+    await Notification.deleteMany(filter);
   } catch (error) {
     return error;
   }
@@ -305,14 +289,17 @@ exports.deleteNotificationsByUserId = async function (userId) {
 
 // GetNotificationByUserId get all notifications by userId who receive the notification
 exports.getNotificationByUserId = async function (userId, sortBy, page, limit) {
-  let sortMap = [];
+  let sortMap = {};
   sortMap[sortBy] = -1;
   let skip = numberOfItems * (page - 1);
 
   let filter = {
     notifyRecieverUserId: userId,
   };
-
+  console.log(filter);
+  console.log(limit);
+  console.log(skip);
+  console.log(sortMap);
   try {
     return await findNotificationList(filter, limit, skip, sortMap);
   } catch (error) {
@@ -323,7 +310,10 @@ exports.getNotificationByUserId = async function (userId, sortBy, page, limit) {
 // FindNotificationList get all notifications by filter
 async function findNotificationList(filter, limit, skip, sortMap) {
   try {
-    return Notification.find(filter).sort(sortMap).limit(limit).skip(skip);
+    return await Notification.find(filter)
+      .sort(sortMap)
+      .limit(limit)
+      .skip(skip);
   } catch (error) {
     return error;
   }
@@ -332,10 +322,10 @@ async function findNotificationList(filter, limit, skip, sortMap) {
 // FindById find by notification id
 exports.findById = async function (objectId) {
   let filter = {
-    objectId: objectId,
+    notifyRecieverUserId: objectId,
   };
   try {
-    return Notification.find(filter);
+    return await Notification.find(filter);
   } catch (error) {
     return error;
   }

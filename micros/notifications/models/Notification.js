@@ -14,7 +14,7 @@ const notificationSchema = new Schema(
     },
     ownerDisplayName: { type: String },
     ownerAvatar: { type: String },
-    createdDate: { type: Number },
+    created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
     title: { type: String },
     description: { type: String },
     URL: { type: String },

@@ -31,7 +31,7 @@ exports.findProfileByUserIds = async function (userIds) {
   const sortMap = {};
   const include = {};
   const filter = {};
-  sortMap["createdDate"] = -1;
+  sortMap["created_date"] = -1;
   include["$in"] = userIds; // userIds is an Array
   filter["objectId"] = include;
   return await UserProfile.find(filter).sort(sortMap);

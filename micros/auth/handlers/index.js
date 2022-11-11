@@ -479,7 +479,7 @@ exports.loginTelarHandler = async (req, res) => {
       langChannel,
     ]);
     let currentUserLang = "en";
-    log.Error(`langResult.settings ${langResult.settings}`);
+    log.Error(`langResult.settings ${JSON.stringify(langResult.settings)}`);
 
     const langSettigPath = await authService.getSettingPath(
       foundUser.objectId,

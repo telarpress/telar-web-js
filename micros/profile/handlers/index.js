@@ -430,7 +430,7 @@ exports.dispatchProfilesHandle = async function (req, res) {
       mappedUser["banner"] = foundUsers[index]["banner"];
       mappedUser["tagLine"] = foundUsers[index]["tagLine"];
       mappedUser["lastSeen"] = foundUsers[index]["lastSeen"];
-      mappedUser["createdDate"] = foundUsers[index]["created_date"];
+      mappedUser["created_date"] = foundUsers[index]["created_date"];
 
       mappedUser["lastUpdated"] = foundUsers[index]["last_updated"];
       mappedUser["email"] = foundUsers[index]["email"];
@@ -513,7 +513,7 @@ async function dispatchAction(action, userInfoInReq) {
 
 // InitProfileIndexHandle handle create a new index
 exports.initProfileIndexHandle = async function (req, res) {
-  let postIndexMap = [];
+  let postIndexMap = {};
   postIndexMap["fullName"] = "text";
   postIndexMap["objectId"] = 1;
   postIndexMap["socialName"] = "text";

@@ -33,32 +33,32 @@ notificationsRouter.put(
 );
 notificationsRouter.put(
   "/notifications/seen/:notificationId",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.seenNotificationHandle
 );
 notificationsRouter.put(
   "/notifications/seenall",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.seenAllNotificationsHandle
 );
 notificationsRouter.delete(
   "/notifications/id/:notificationId",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.deleteNotificationHandle
 );
 notificationsRouter.delete(
   "/notifications/my",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.deleteNotificationByUserIdHandle
 );
 notificationsRouter.get(
   "/notifications/check",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.getNotificationsByUserIdHandle
 );
 notificationsRouter.get(
   "/notifications/:notificationId",
-  hmacCookieHandlers,
+  hmacCookieHandlers(true),
   handlers.getNotificationHandle
 );
 

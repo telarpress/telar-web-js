@@ -1,9 +1,8 @@
-const { appConfig } = require("../../../micros/actions/config");
+const { appConfig } = require("../../config");
 const utils = require("../../../core/utils/error-handler");
 const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 const log = require("../../../core/utils/errorLogger");
 const { validate } = require("./authHMAC");
-const { v4: uuidv4, v4 } = require("uuid");
 exports.authHMAC = (req, res, next) => {
   try {
     // Check if the HMAC header contains content
@@ -46,7 +45,7 @@ exports.authHMAC = (req, res, next) => {
       username: req.header["email"],
       socialName: req.header["socialName"],
       displayName: req.header["displayName"],
-      // avatar: req.header["avatar"],
+      avatar: req.header["avatar"],
       banner: req.header["banner"],
       tagLine: req.header["tagLine"],
       createdDate: createdDate,

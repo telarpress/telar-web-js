@@ -2,7 +2,6 @@ const notificationService = require("../services/notification.service");
 const utils = require("../../../core/utils/error-handler");
 const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 const log = require("../../../core/utils/errorLogger");
-// const hmac = require("../utils/hmac");
 const { appConfig } = require("../config");
 // const { validate: uuidValidate } = require("uuid");
 const { default: axios } = require("axios");
@@ -11,14 +10,14 @@ const { sendEmail } = require("../utils/sendEmail");
 // CheckNotifyEmailHandle handle query on notification
 exports.checkNotifyEmailHandle = async function (req, res) {
   try {
-    const notificationList = notificationService.getLastNotifications();
-    if (len(notificationList) <= 0) {
-      return res.status(HttpStatusCode.OK);
+    const notificationList = await notificationService.getLastNotifications();
+    if (notificationList.length <= 0) {
+      return res.status(HttpStatusCode.OK).send();
     }
 
     let recIds = [];
     notificationList.forEach((notification) => {
-      notification.IsEmailSent = true;
+      notification.isEmailSent = true;
       recIds.push(notification.notifyRecieverUserId);
     });
 
@@ -36,11 +35,11 @@ exports.checkNotifyEmailHandle = async function (req, res) {
     }
 
     let userInfoInReq = new userInfoInReq({
-      userId: currentUser.userID,
-      username: currentUser.username,
+      userId: currentUser.userId,
+      username: currentUser.email,
       avatar: currentUser.avatar,
       displayName: currentUser.displayName,
-      systemRole: currentUser.systemRole,
+      systemRole: currentUser.role,
     });
 
     const mappedSettings = notificationService.getUsersNotificationSettings(
@@ -100,7 +99,7 @@ exports.checkNotifyEmailHandle = async function (req, res) {
       }
     });
 
-    updateNotifyIds.push(notification.ObjectId);
+    updateNotifyIds.push(notification.objectId);
 
     if (updateNotifyIds.length > 0) {
       const updateEmail = notificationService.updateEmailSent(updateNotifyIds);
@@ -118,7 +117,7 @@ exports.checkNotifyEmailHandle = async function (req, res) {
       }
     }
 
-    return res.status(HttpStatusCode.OK);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(`[checkNotifyEmailHandle] ${error}`);
     return res
@@ -208,8 +207,22 @@ exports.createNotificationHandle = async function (req, res) {
         );
     }
 
+    let newNotification = {
+      objectId: model.objectId,
+      ownerUserId: currentUser.userId,
+      ownerDisplayName: currentUser.displayName,
+      ownerAvatar: currentUser.avatar,
+      title: model.title,
+      description: model.description,
+      URL: model.URL,
+      notifyRecieverUserId: model.notifyRecieverUserId,
+      targetId: model.targetId,
+      isSeen: false,
+      type: model.type,
+      emailNotification: model.emailNotification,
+    };
     try {
-      await notificationService.saveNotification(model, currentUser);
+      await notificationService.saveNotification(newNotification);
     } catch (error) {
       log.Error(`Save Notification Error ${error}`);
       return res
@@ -224,12 +237,12 @@ exports.createNotificationHandle = async function (req, res) {
 
     // Send notification
     const actionURL = `/actions/dispatch/${model.notifyRecieverUserId}`;
-    let notificationList = (notificationList[newNotification.objectId] =
-      newNotification);
-    let notificationAction = NotificationAction({
+    let notificationList = {};
+    notificationList[newNotification.objectId] = newNotification;
+    let notificationAction = {
       type: "ADD_PLAIN_NOTIFY_LIST",
       payload: notificationList,
-    });
+    };
 
     let notificationActionBytes = JSON.stringify(notificationAction);
     if (!notificationActionBytes) {
@@ -240,10 +253,10 @@ exports.createNotificationHandle = async function (req, res) {
       const config = {
         headers: {
           uid: currentUser.userId,
-          email: currentUser.username,
+          email: currentUser.email,
           avatar: currentUser.avatar,
           displayName: currentUser.displayName,
-          role: currentUser.systemRole,
+          role: currentUser.role,
         },
         timeout: 1000,
       };
@@ -252,13 +265,12 @@ exports.createNotificationHandle = async function (req, res) {
         notificationActionBytes,
         config
       );
-      return response.data;
+      console.log(response.data);
+      return res.send({ objectId: newNotification.objectId }).json();
     } catch (error) {
       if (axios.isAxiosError(error))
         log.Error(`Cannot send action request! error ${error}`);
     }
-
-    return res.send({ objectId: newNotification.objectId });
   } catch (error) {
     log.Error(`[createNotificationHandle] - Save Notification Error ${error}`);
     return res
@@ -319,7 +331,7 @@ exports.updateNotificationHandle = async function (req, res) {
         );
     }
 
-    return res.status(HttpStatusCode.OK);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(
       `[UpdateNotificationHandle] - Update Notification Error ${error}`
@@ -380,7 +392,7 @@ exports.seenNotificationHandle = async function (req, res) {
 
     notificationService.seenNotification(notificationUUID, currentUserId);
 
-    return res.status(HttpStatusCode.ok);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(`Update Notification Error ${error}`);
     return res
@@ -409,10 +421,19 @@ exports.seenAllNotificationsHandle = async function (req, res) {
           ).json()
         );
     }
-
+    const existNotification = await notificationService.findById(currentUserId);
+    if (Array.isArray(existNotification) && !existNotification.length) {
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "notification.seenAllNotification",
+            "Seen All Notification Bad Request!"
+          ).json()
+        );
+    }
     notificationService.seenAllNotifications(currentUserId);
-
-    return res.status(HttpStatusCode.ok);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(`Seen All Notification Error ${error}`);
     return res
@@ -474,7 +495,7 @@ exports.deleteNotificationHandle = async function (req, res) {
       notificationUUID
     );
 
-    return res.status(HttpStatusCode.ok);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(`Delete Notification Error ${error}`);
     return res
@@ -506,7 +527,7 @@ exports.deleteNotificationByUserIdHandle = async function (req, res) {
 
     notificationService.deleteNotificationsByUserId(currentUserId);
 
-    return res.status(HttpStatusCode.ok);
+    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(`Delete Notification Error ${error}`);
     return res
@@ -603,24 +624,11 @@ exports.getNotificationHandle = async function (req, res) {
         );
     }
 
-    const model = req.body;
-    if (!model) {
-      log.Error("[GetNotificationHandle] Parse Get Notification Model Error");
-      return res
-        .status(HttpStatusCode.BadRequest)
-        .send(
-          new utils.ErrorHandler(
-            "notification.getNotificationModel",
-            "Parse Get Notification Model Error"
-          ).json()
-        );
-    }
-
     const notificationModel = {
       objectId: foundNotification.objectId,
-      ownerUserId: currentUser.userID,
-      ownerDisplayName: currentUser.displayName,
-      ownerAvatar: currentUser.avatar,
+      ownerUserId: currentUserId.userId,
+      ownerDisplayName: currentUserId.displayName,
+      ownerAvatar: currentUserId.avatar,
       title: foundNotification.title,
       description: foundNotification.description,
       URL: foundNotification.URL,

@@ -145,7 +145,7 @@ exports.getUserProfileByID = async function (reqUserId) {
 // readLanguageSettingAsync Read language setting async
 exports.readLanguageSettingAsync = async function (objectId, userInfoInReq) {
   const settings = await getUsersLangSettings(objectId, userInfoInReq);
-  return await { settings: settings };
+  return { settings: settings };
 };
 
 // getUsersLangSettings Get users language settings
@@ -160,7 +160,7 @@ async function getUsersLangSettings(objectId, userInfoInReq) {
       "post",
       model,
       url,
-      getHeadersFromUserInfoReq(userInfoInReq)
+      await getHeadersFromUserInfoReq(userInfoInReq)
     );
   } catch (error) {
     return `Cannot send request to /setting/dto/ids - ${error}`;
@@ -216,13 +216,13 @@ const microCall = async (method, data, url, headers = {}) => {
 
 // getHeadersFromUserInfoReq
 async function getHeadersFromUserInfoReq(info) {
-  let userHeaders = [];
+  let userHeaders = {};
   userHeaders["uid"] = info.userId;
   userHeaders["email"] = info.username;
   userHeaders["avatar"] = info.avatar;
   userHeaders["displayName"] = info.displayName;
   userHeaders["role"] = info.systemRole;
-  return await userHeaders;
+  return userHeaders;
 }
 
 // getSettingPath
@@ -233,6 +233,7 @@ exports.getSettingPath = async function (userId, settingType, settingKey) {
 // createDefaultLangSetting
 exports.createDefaultLangSetting = async function (userInfoInReq) {
   const settingBytes = {
+    userInfoInReq,
     list: [
       {
         type: "lang",
@@ -252,7 +253,7 @@ exports.createDefaultLangSetting = async function (userInfoInReq) {
     "post",
     settingBytes,
     settingURL,
-    getHeadersFromUserInfoReq(userInfoInReq)
+    await getHeadersFromUserInfoReq(userInfoInReq)
   );
 
   if (!setting) {

@@ -1,5 +1,6 @@
 const express = require("express");
 const actionsRouter = express.Router();
+const { appConfig } = require("../config");
 
 const {
   authCookie,
