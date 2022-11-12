@@ -170,7 +170,7 @@ exports.updateEmailSent = async function (notifyIds) {
 exports.saveNotification = async function (newNotification) {
   if (!newNotification.objectId) {
     try {
-      newNotification.objectId = uuid.NewV4();
+      newNotification.objectId = uuidv4();
     } catch (uuidErr) {
       return uuidErr;
     }
@@ -191,7 +191,7 @@ exports.updateNotificationById = async function (model, currentUser) {
     ownerAvatar: currentUser.avatar,
     title: model.title,
     description: model.description,
-    URL: model.URL,
+    url: model.url,
     notifyRecieverUserId: model.notifyRecieverUserId,
     targetId: model.targetId,
     isSeen: model.isSeen,
@@ -296,10 +296,6 @@ exports.getNotificationByUserId = async function (userId, sortBy, page, limit) {
   let filter = {
     notifyRecieverUserId: userId,
   };
-  console.log(filter);
-  console.log(limit);
-  console.log(skip);
-  console.log(sortMap);
   try {
     return await findNotificationList(filter, limit, skip, sortMap);
   } catch (error) {

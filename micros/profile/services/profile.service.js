@@ -39,7 +39,8 @@ exports.findProfileByUserIds = async function (userIds) {
 exports.updateLastSeenNow = async function (objectId) {
   await UserProfile.findOneAndUpdate(
     { objectId: objectId },
-    { lastSeen: Math.floor(Date.now() / 1000) }
+    { lastSeen: Math.floor(Date.now() / 1000) },
+    { upsert: true }
   );
 };
 

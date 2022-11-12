@@ -7,13 +7,13 @@ const log = require("../../../core/utils/errorLogger");
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {
   try {
-    const { userInfoInReq, list } = req.body;
+    const { list } = req.body;
 
     let userSettingList = [];
     list.forEach((settings) => {
       settings.list.forEach((setting) => {
         let newUserSetting = {
-          ownerUserId: userInfoInReq.userId,
+          ownerUserId: res.locals.user.uid,
           name: setting.name,
           value: setting.value,
           type: settings.type,
@@ -27,7 +27,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 
     return await res
       .status(HttpStatusCode.OK)
-      .send({ objectId: userInfoInReq.userId })
+      .send({ objectId: res.locals.user.uid })
       .json();
   } catch (error) {
     log.Error("Save UserSetting Error " + error);
@@ -152,7 +152,6 @@ exports.getAllUserSetting = async function (req, res) {
     const userSetting = await userSettingService.getAllUserSetting(
       currentUserId
     );
-    console.log(userSetting);
 
     return await res.status(HttpStatusCode.OK).send(userSetting);
   } catch (error) {

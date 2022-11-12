@@ -17,7 +17,7 @@ const notificationSchema = new Schema(
     created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
     title: { type: String },
     description: { type: String },
-    URL: { type: String },
+    url: { type: String },
     notifyRecieverUserId: {
       type: "object",
       value: { type: "Buffer" },

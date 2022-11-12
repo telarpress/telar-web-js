@@ -43,8 +43,8 @@ exports.updateUserSettingsById = async function (userSetting) {
       console.log(JSON.stringify(err, null, 2));
     });
 };
-exports.deleteUserSettingByOwnerUserId = async function (userId) {
-  return UserSetting.deleteMany({ ownerUserId: userId });
+exports.deleteUserSettingByOwnerUserId = async function (userIds) {
+  return UserSetting.deleteMany({ ownerUserId: { $in: userIds.split(",") } });
 };
 
 exports.findSettingByUserIds = async function (userIds, type) {
