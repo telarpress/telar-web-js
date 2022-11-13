@@ -31,7 +31,7 @@ exports.findProfileByUserIds = async function (userIds) {
   const sortMap = {};
   const include = {};
   const filter = {};
-  sortMap["createdDate"] = -1;
+  sortMap["created_date"] = -1;
   include["$in"] = userIds; // userIds is an Array
   filter["objectId"] = include;
   return await UserProfile.find(filter).sort(sortMap);
@@ -39,7 +39,8 @@ exports.findProfileByUserIds = async function (userIds) {
 exports.updateLastSeenNow = async function (objectId) {
   await UserProfile.findOneAndUpdate(
     { objectId: objectId },
-    { lastSeen: Math.floor(Date.now() / 1000) }
+    { lastSeen: Math.floor(Date.now() / 1000) },
+    { upsert: true }
   );
 };
 
@@ -47,20 +48,24 @@ exports.findBySocialName = function (socialName) {
   return UserProfile.findOne({ socialName: socialName });
 };
 
-exports.getProfileById = function (userId) {
-  return UserProfile.findOne({ objectId: userId });
+exports.getProfileById = async function (userId) {
+  return await UserProfile.findOne({ objectId: userId });
 };
 
 exports.createUserProfileIndex = async function (postIndexMap) {
   return await UserProfile.createIndexes(postIndexMap);
 };
-exports.findProfileByAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return await UserProfile.findOne({ objectId: decode.id });
+
+exports.getIdFromAccessToken = async function (token) {
+  const jwtOptions = { algorithm: "ES256" };
+  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  return await decode.StandardClaims.id;
 };
+
 exports.checkAccessToken = async function (token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  return await UserProfile.findOne({ objectId: decode.id });
+  const jwtOptions = { algorithm: "ES256" };
+  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  return await UserProfile.findOne({ objectId: decode.StandardClaims.id });
 };
 exports.getProfiles = function () {
   return UserProfile.find();
@@ -95,8 +100,8 @@ exports.createDtoProfileHandle = function (profile) {
       1,
       1000
     )}/900/300/?blur`,
-    created_date: Date.now(),
-    last_updated: Date.now(),
+    created_date: Math.floor(Date.now() / 1000),
+    last_updated: Math.floor(Date.now() / 1000),
     permission: "user",
   });
   return newProfile.save();

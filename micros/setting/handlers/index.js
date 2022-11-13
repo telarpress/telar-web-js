@@ -1,49 +1,33 @@
 const userSettingService = require("../services/userSettingService");
-const utils = require("../utils/error-handler");
-const { HttpStatusCode } = require("../utils/HttpStatusCode");
+const utils = require("../../../core/utils/error-handler");
+const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
 
-const log = require("../utils/errorLogger");
+const log = require("../../../core/utils/errorLogger");
 
 // CreateSettingGroupHandle handle create a new userSetting
 exports.createSettingGroupHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
-    const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-    if (currentUserId == null || ownerUserId != currentUserId) {
-      log.Error("[CreateUserSettingHandle] Can not get current user");
-      return res
-        .status(HttpStatusCode.Unauthorized)
-        .send(
-          new utils.ErrorHandler(
-            "setting.invalidCurrentUser",
-            "Can not get current user"
-          ).json()
-        );
-    }
+    const { list } = req.body;
 
-    await userSettingService.saveManyUserSetting(
-      type,
-      creationDate,
-      ownerUserId,
-      list
-    );
+    let userSettingList = [];
+    list.forEach((settings) => {
+      settings.list.forEach((setting) => {
+        let newUserSetting = {
+          ownerUserId: res.locals.user.uid,
+          name: setting.name,
+          value: setting.value,
+          type: settings.type,
+          isSystem: false,
+        };
+        userSettingList.push(newUserSetting);
+      });
+    });
+
+    await userSettingService.saveManyUserSetting(userSettingList);
 
     return await res
       .status(HttpStatusCode.OK)
-      .send({ objectId: currentUserId })
+      .send({ objectId: res.locals.user.uid })
       .json();
   } catch (error) {
     log.Error("Save UserSetting Error " + error);
@@ -60,22 +44,9 @@ exports.createSettingGroupHandle = async function (req, res) {
 
 // UpdateUserSettingHandle handle create a new userSetting
 exports.updateUserSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[UpdateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
+    const currentUserId = res.locals.user.uid;
 
     if (currentUserId == null || ownerUserId != currentUserId) {
       log.Error("[UpdateUserSettingHandle] Can not get current user");
@@ -99,17 +70,17 @@ exports.updateUserSettingHandle = async function (req, res) {
       } else {
         createdDateValue = creationDate;
       }
-      let newUserSetting = new Object({
+      let newUserSetting = {
         objectId: setting.objectId,
         ownerUserId: ownerUserId,
-        createdDate: createdDateValue,
+        created_date: createdDateValue,
         name: setting.name,
         value: setting.value,
         type: type,
         isSystem: setting.isSystem,
         // objectId: uuid,
         // ownerUserId: MUUID.from(settingOwnerUserId),
-      });
+      };
       userSetting = userSetting.concat(newUserSetting);
     });
     if (!userSetting.length > 0) {
@@ -145,25 +116,21 @@ exports.updateUserSettingHandle = async function (req, res) {
 
 // DeleteUserAllSettingHandle handle delete all userSetting
 exports.deleteUserAllSettingHandle = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[CreateUserSettingHandle] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   try {
-    const userID = req.body;
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
+    const userID = req.body.userId;
+    const currentUserId = res.locals.user.uid;
 
-    if (currentUserId == null || userID != currentUserId)
-      res.status(HttpStatusCode.NotFound).end();
+    if (currentUserId == null || userID != currentUserId) {
+      log.Error("[DeleteUserAllSettingHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "setting.invalidCurrentUser",
+            "Can not get current user"
+          ).json()
+        );
+    }
 
     await userSettingService.deleteUserSettingByOwnerUserId(userID);
   } catch (error) {
@@ -180,41 +147,13 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
   return res.status(HttpStatusCode.OK).send({ objectId: currentUserId }).json();
 };
 exports.getAllUserSetting = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetAllUserSetting] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
   try {
-    const currentUserId = await userSettingService.findIdByAccessToken(token);
-
-    if (currentUserId == null || userID != currentUserId)
-      res.status(HttpStatusCode.Unauthorized).end();
-
-    const settingType = req.params.type;
-    if (!settingType) {
-      log.Error("Error setting type can not be empty.");
-      return res
-        .status(HttpStatusCode.BadRequest)
-        .send(
-          new utils.ErrorHandler(
-            "setting.settingTypeRquired",
-            "Error setting type can not be empty.!"
-          ).json()
-        );
-    }
-
+    const currentUserId = res.locals.user.uid;
     const userSetting = await userSettingService.getAllUserSetting(
       currentUserId
     );
-    return await res.status(HttpStatusCode.OK).send(userSetting).json().end();
+
+    return await res.status(HttpStatusCode.OK).send(userSetting);
   } catch (error) {
     if (error == "TokenExpiredError: jwt expired")
       return res.redirect("/auth/login");
@@ -231,31 +170,16 @@ exports.getAllUserSetting = async function (req, res) {
 };
 // GetSettingByUserIds a function invocation to setting by user ids
 exports.getSettingByUserIds = async function (req, res) {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("[GetSettingByUserIds] Can not get current user");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "setting.invalidCurrentUser",
-          "Can not get current user"
-        ).json()
-      );
-  }
-
   const { userIds, type } = req.body;
-
   try {
     const foundUsersSetting = await userSettingService.findSettingByUserIds(
       userIds,
-      type,
-      token
+      type
     );
+
     let mappedSetting = {};
     await foundUsersSetting.forEach((setting) => {
       let key = `${setting.ownerUserId}:${setting.type}:${setting.name}`;
-      console.log(key);
       mappedSetting[key] = setting.value;
     });
     return await res.status(HttpStatusCode.OK).send(mappedSetting).json();

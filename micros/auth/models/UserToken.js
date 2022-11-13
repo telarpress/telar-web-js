@@ -12,7 +12,7 @@ const UserVerificationTokenSchema = new Schema(
     remoteIpAddress: { type: String, required: true },
     userId: { type: String, required: true, trim: true, unique: true },
     isVerified: { type: Boolean, required: true, default: false },
-    last_updated: { type: Date, default: Date.now },
+    last_updated: { type: Number, default: Math.floor(Date.now() / 1000) },
   },
   { collection: "userVerification" }
 );

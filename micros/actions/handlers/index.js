@@ -10,7 +10,7 @@ const { default: axios } = require("axios");
 // CreateActionRoomHandle handle create a new actionRoom
 exports.createActionRoomHandle = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.token;
+    const currentUserId = res.locals.user.uid;
     if (!currentUserId || currentUserId == null) {
       log.Error("[CreateActionRoomHandle] Can not get current user");
       return res
@@ -24,7 +24,7 @@ exports.createActionRoomHandle = async function (req, res) {
     }
 
     const model = req.body;
-    if (model == null) {
+    if (!model) {
       log.Error("[CreateActionRoomHandle] Parse CreateActionRoomModel Error");
       return res
         .status(HttpStatusCode.BadRequest)
@@ -36,14 +36,14 @@ exports.createActionRoomHandle = async function (req, res) {
         );
     }
 
-    let newActionRoom = new Object({
+    let newActionRoom = {
       objectId: model.objectId,
       ownerUserId: currentUserId,
       privateKey: model.privateKey,
       accessKey: model.accessKey,
       status: model.status,
       created_date: model.createdDate,
-    });
+    };
 
     const createActionRoom = await actionRoomService.saveActionRoom(
       newActionRoom
@@ -93,7 +93,7 @@ exports.dispatchHandle = async function (req, res) {
     const httpReq = await axios.post(URL, bodyReader, axiosConfig);
 
     if (!httpReq) {
-      console.log(`callAPIWithHMAC ${httpReq}`);
+      log.Error(`callAPIWithHMAC ${httpReq}`);
       return Error("actionRoom/callAPIWithHMAC");
     }
     console.info(httpReq);
@@ -113,7 +113,7 @@ exports.dispatchHandle = async function (req, res) {
 
 // UpdateActionRoomHandle handle create a new actionRoom
 exports.updateActionRoomHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[UpdateActionRoomHandle] Can not get current user");
     return res
@@ -128,7 +128,7 @@ exports.updateActionRoomHandle = async function (req, res) {
 
   try {
     const model = req.body;
-    if (model == null) {
+    if (!model) {
       log.Error("[UpdateActionRoomHandle] Parse ActionRoomModel Error");
       return res
         .status(HttpStatusCode.BadRequest)
@@ -140,14 +140,14 @@ exports.updateActionRoomHandle = async function (req, res) {
         );
     }
 
-    let updatedActionRoom = new Object({
+    let updatedActionRoom = {
       objectId: model.objectId,
       ownerUserId: currentUserId,
       privateKey: model.privateKey,
       accessKey: model.accessKey,
       status: model.status,
-      createdDate: model.createdDate,
-    });
+      created_date: model.createdDate,
+    };
 
     const updatedActionRoomReult = await actionRoomService.updateActionRoomById(
       updatedActionRoom
@@ -168,7 +168,7 @@ exports.updateActionRoomHandle = async function (req, res) {
 
 // SetAccessKeyHandle handle create a new actionRoom
 exports.setAccessKeyHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[SetAccessKeyHandle] Can not get current user");
     return res
@@ -211,7 +211,7 @@ exports.deleteActionRoomHandle = async function (req, res) {
       );
   }
 
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[DeleteActionRoomHandle] Can not get current user");
     return res
@@ -229,7 +229,14 @@ exports.deleteActionRoomHandle = async function (req, res) {
       actionRoomId
     );
     if (deleteAction.deletedCount == 0)
-      return res.status(HttpStatusCode.NotFound).end();
+      return res
+        .status(HttpStatusCode.NotFound)
+        .send(
+          new utils.ErrorHandler(
+            "actionRoom.actionRoomService",
+            "There is no action when removing the action room!"
+          ).json()
+        );
     return res.status(HttpStatusCode.OK).end();
   } catch (error) {
     log.Error("Delete ActionRoom Error " + error);
@@ -246,7 +253,7 @@ exports.deleteActionRoomHandle = async function (req, res) {
 
 // GetAccessKeyHandle handle get access key
 exports.getAccessKeyHandle = async function (req, res) {
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[GetAccessKeyHandle] Can not get current user");
     return res
@@ -278,7 +285,7 @@ exports.getAccessKeyHandle = async function (req, res) {
 // VerifyAccessKeyHandle handle verify access key
 exports.verifyAccessKeyHandle = async function (req, res) {
   const model = req.body;
-  if (model == null) {
+  if (!model) {
     log.Error("[VerifyAccessKeyHandle] Parse ActionVerifyModel Error");
     return res
       .status(HttpStatusCode.BadRequest)
@@ -290,7 +297,7 @@ exports.verifyAccessKeyHandle = async function (req, res) {
       );
   }
 
-  const currentUserId = res.locals.user.token;
+  const currentUserId = res.locals.user.uid;
   if (!currentUserId || currentUserId == null) {
     log.Error("[VerifyAccessKeyHandle] Can not get current user");
     return res
@@ -308,7 +315,7 @@ exports.verifyAccessKeyHandle = async function (req, res) {
       currentUserId,
       model.accessKey
     );
-    console.log(isVerified);
+
     return res
       .status(HttpStatusCode.OK)
       .send({ isVerified: isVerified })

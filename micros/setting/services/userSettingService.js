@@ -6,40 +6,14 @@ const UserSetting = require("../models/UserSetting");
 const { v4: uuidv4 } = require("uuid");
 // const MUUID = require("uuid-mongodb");
 
-exports.saveManyUserSetting = async function (
-  settingType,
-  settingCreationDate,
-  settingOwnerUserId,
-  settingList
-) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  if (decode.id != settingOwnerUserId) return Error("Error in Authentication");
+exports.saveManyUserSetting = async function (userSettingList) {
+  for (const setting of userSettingList) {
+    if (setting.objectId == "") setting.objectId = uuidv4();
 
-  // TODO: Use  canonical Base64 UUID
-  // const mUUID = MUUID.mode("canonical");
-
-  settingList.forEach((setting) => {
-    let uuid = uuidv4();
-    let createdDateValue;
-    //let uuid = MUUID.v1();
-    if (settingCreationDate == 0) {
-      createdDateValue = Math.floor(Date.now() / 1000);
-    } else {
-      createdDateValue = settingCreationDate;
-    }
-    let newUserSetting = new UserSetting({
-      objectId: uuid,
-      // ownerUserId: MUUID.from(settingOwnerUserId),
-      ownerUserId: settingOwnerUserId,
-      createdDate: createdDateValue,
-      name: setting.name,
-      value: setting.value,
-      type: settingType,
-      isSystem: setting.isSystem,
-    });
-
-    return UserSetting(newUserSetting).save();
-  });
+    if (setting.created_date == "")
+      setting.created_date = Math.floor(Date.now() / 1000);
+    return UserSetting(setting).save();
+  }
 };
 exports.updateUserSettingsById = async function (userSetting) {
   let bulkItem = [];
@@ -69,14 +43,12 @@ exports.updateUserSettingsById = async function (userSetting) {
       console.log(JSON.stringify(err, null, 2));
     });
 };
-exports.deleteUserSettingByOwnerUserId = async function (userId) {
-  return UserSetting.deleteMany({ ownerUserId: userId });
+exports.deleteUserSettingByOwnerUserId = async function (userIds) {
+  return UserSetting.deleteMany({ ownerUserId: { $in: userIds.split(",") } });
 };
 
-exports.findSettingByUserIds = async function (userIds, type, token) {
-  const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-  if (decode.id != ownerUserId) return Error("Error in Authentication");
-  return UserSetting.find({
+exports.findSettingByUserIds = async function (userIds, type) {
+  return await UserSetting.find({
     ownerUserId: { $in: userIds.split(",") },
     type: type,
   });
@@ -89,25 +61,24 @@ exports.findIdByAccessToken = async function (token) {
 
 exports.getAllUserSetting = async function (userId) {
   const userSetting = await UserSetting.find({ ownerUserId: userId });
+
   let groupSettingsMap = [];
   userSetting.forEach((setting) => {
-    let settingModel = new Object({
+    let settingModel = {
       objectId: setting.objectId,
       name: setting.name,
       value: setting.value,
       isSystem: setting.isSystem,
-    });
+    };
     let type = [setting.type];
     groupSettingsMap = groupSettingsMap.concat(type, settingModel);
   });
-  console.log(userSetting);
-  let groupSettingsModel = new Object({
-    Type: userSetting[0].type,
-    CreatedDate: userSetting[0].createdDate,
-    OwnerUserId: userSetting[0].ownerUserId,
-    List: groupSettingsMap,
-  });
-  console.log(groupSettingsModel);
+  let groupSettingsModel = {
+    type: userSetting[0].type,
+    createdDate: userSetting[0].created_date,
+    ownerUserId: userSetting[0].ownerUserId,
+    list: groupSettingsMap,
+  };
 
   return groupSettingsModel;
 };

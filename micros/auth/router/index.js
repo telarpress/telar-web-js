@@ -1,6 +1,18 @@
 const express = require("express");
 const authRouter = express.Router();
 require("../utils/googleOauth");
+const { appConfig } = require("../config");
+const {
+  authCookie,
+} = require("../../../core/middleware/authcookie/authcookie");
+
+const { authHMAC } = require("../../../core/middleware/authHMAC/");
+const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
+  if (req.get(appConfig.HMAC_NAME) !== undefined || !hmacWithCookie) {
+    return authHMAC(req, res, next);
+  }
+  return authCookie(req, res, next);
+};
 
 // @title Auth micro API
 // @version 1.0
@@ -30,8 +42,16 @@ authRouter.get("/auth/signup/verify", handlers.verifyGetSignupHandle);
 authRouter.post("/auth/signup/verify", handlers.verifySignupHandle);
 
 // Password
-authRouter.get("/auth/password/reset", handlers.getResetUserPassword);
-authRouter.post("/auth/password/reset", handlers.resetUserPassword);
+authRouter.get(
+  "/auth/password/reset",
+  hmacCookieHandlers(true),
+  handlers.getResetUserPassword
+);
+authRouter.post(
+  "/auth/password/reset",
+  hmacCookieHandlers(true),
+  handlers.resetUserPassword
+);
 
 // authRouter.get("/auth/password/reset/:verifyId", handlers.getResetUserPassword);
 // authRouter.post("/auth/password/reset/:verifyId", handlers.resetUserPassword);
@@ -55,7 +75,11 @@ authRouter.get(
   handlers.getForgetPassword
 );
 
-authRouter.post("/auth/password/change", handlers.changePasswordHandler);
+authRouter.post(
+  "/auth/password/change",
+  hmacCookieHandlers(true),
+  handlers.changePasswordHandler
+);
 
 // Login
 authRouter.get("/auth/", handlers.mainPageHandler);
@@ -64,9 +88,9 @@ authRouter.get("/auth/login/", handlers.loginPageHandler);
 authRouter.post("/auth/login/", handlers.loginTelarHandler);
 authRouter.post("/auth/login/telar", handlers.loginTelarHandler);
 
-// login.Get("/github", handlers.LoginGithubHandler)
-// login.Get("/google", handlers.LoginGoogleHandler)
-// app.Get("/oauth2/authorized", handlers.OAuth2Handler)
+// authRouter.get("/github", handlers.LoginGithubHandler)
+// authRouter.get("/google", handlers.LoginGoogleHandler)
+// authRouter.get("/oauth2/authorized", handlers.OAuth2Handler)
 
 authRouter.get("/auth/github/callback", handlers.gitCallback);
 authRouter.get("/auth/gitsuccess", handlers.gitSuccess);

@@ -15,7 +15,7 @@ exports.connect = async function () {
           "Problem in MongoDB Connection"
         );
       }
-      log.Error("MongoDB Connected");
+      console.log("MongoDB Connected");
       break;
 
     default:

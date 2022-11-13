@@ -57,7 +57,7 @@ const verify = (hashedMessage, sharedSecret, message) => {
  */
 const validate = async (message, secret, hash) => {
   const hashedMessage = getHashedMessage(hash);
-  return verify(hashedMessage, secret, message.toString());
+  return verify(hashedMessage, secret, message);
 };
 
 module.exports = { validate, verify, sign };

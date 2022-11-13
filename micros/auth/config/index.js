@@ -5,7 +5,8 @@ const config = process.env.Node_ENV == "production" ? prod : dev;
 
 exports.appConfig = {
   // BASE_ROUTE: config.micros.auth.environment.base_route,
-  // EXTERNAL_REDIRECT_DOMAIN: config.micros.auth.environment.external_redirect_domain,
+  EXTERNAL_REDIRECT_DOMAIN:
+    config.micros.auth.environment.external_redirect_domain,
   WEB_URL: config.micros.auth.environment.web_url,
   AUTH_WEB_URI: config.micros.auth.environment.auth_web_uri,
   GITHUB_CLIENT_ID: config.micros.auth.environment.github_client_id,
@@ -26,22 +27,22 @@ exports.appConfig = {
   APP_NAME: config.environment.app_name,
   // BASE_ROUTE_DOMAIN:config.environment.base_route_domain,
   DB_TYPE: config.environment.db_type,
-  // HEADER_COOKIE_NAME:config.environment.header_cookie_name,
+  HEADER_COOKIE_NAME: config.environment.header_cookie_name,
   ORG_AVATAR: config.environment.org_avatar,
   ORG_NAME: config.environment.org_name,
-  // PAYLOAD_COOKIE_NAME:config.environment.payload_cookie_name,
+  PAYLOAD_COOKIE_NAME: config.environment.payload_cookie_name,
   // PHONE_SOURCE_NUMBER:config.environment.phone_source_number,
   // READ_TIMEOUT:config.environment.read_timeout,
   RECAPTCHA_SITE_KEY: config.environment.recaptcha_site_key,
   // REDIS_ADDRESS:config.environment.redis_address,
   REF_EMAIL: config.environment.ref_email,
-  // SIGNATURE_COOKIE_NAME:config.environment.signature_cookie_name,
+  SIGNATURE_COOKIE_NAME: config.environment.signature_cookie_name,
   SMTP_EMAIL_HOST: config.environment.smtp_email_host,
   SMTP_EMAIL_PORT: config.environment.smtp_email_port,
   // WRITE_TIMEOUT:config.environment.write_timeout,
-  // COOKIE_ROOT_DOMAIN:config.environment.cookie_root_domain,
+  COOKIE_ROOT_DOMAIN: config.environment.cookie_root_domain,
   // GATEWAY:config.environment.gateway,
-  // INTERNAL_GATEWAY:config.environment.internal_gateway,
+  INTERNAL_GATEWAY: config.environment.internal_gateway,
   // ORIGIN:config.environment.origin,
   // WEBSOCKET_SERVER_URL: config.environment.websocket_server_url,
   // DEBUG:config.environment.debug,
@@ -53,6 +54,8 @@ exports.appConfig = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   ACCESS_TPK: process.env.ACCESS_TOKEN_PRIVATE_KEY, //Short-lived (minutes) JWT Auth Token
   REFRESH_TPK: process.env.REFRESH_TOKEN_PRIVATE_KEY, //Longer-lived (hours/days) JWT Refresh Token
+  KEY: decodeBase64(process.env.KEY),
+  COOKIE_EXPIRY: process.env.COOKIE_EXPIRY,
   SALT: process.env.SALT,
   SMTP_EMAIL_USER: process.env.EMAIL_USER,
   SMTP_EMAIL_PASSWORD: process.env.EMAIL_PASS,
@@ -62,12 +65,10 @@ exports.appConfig = {
 };
 // decodeBase64 Decode base64 string
 function decodeBase64(encodedStrings) {
-  return encodedStrings;
-  // After creating the env file based on Base64 encryption, apply the following changes.
-  // // create a buffer
-  // const buff = Buffer.from(encodedStrings, "base64");
-  // // decode buffer as UTF-8
-  // const str = buff.toString("utf-8");
-  // // return normal string
-  // return str;
+  // create a buffer
+  const buff = Buffer.from(encodedStrings, "base64");
+  // decode buffer as UTF-8
+  const str = buff.toString("utf-8");
+  // return normal string
+  return str;
 }

@@ -8,7 +8,7 @@ const { default: axios } = require("axios");
 // SaveActionRoom save the actionRoom
 exports.saveActionRoom = async function (actionRoom) {
   if (actionRoom.createdDate == 0)
-    actionRoom.createdDate = Math.floor(Date.now() / 1000);
+    actionRoom.created_date = Math.floor(Date.now() / 1000);
 
   const actionRoomModel = new ActionRoom(actionRoom);
   return await actionRoomModel.save();

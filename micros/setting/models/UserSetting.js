@@ -8,7 +8,7 @@ const UserSettingSchema = new Schema(
       value: { type: "Buffer" },
       // default: () => MUUID.v1(),
     },
-    createdDate: { type: String },
+    created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
     ownerUserId: {
       type: "object",
       value: { type: "Buffer" },

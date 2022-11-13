@@ -1,51 +1,55 @@
 const express = require("express");
 const actionsRouter = express.Router();
+const { appConfig } = require("../config");
 
 const {
-  authCookieMiddleware,
+  authCookie,
 } = require("../../../core/middleware/authcookie/authcookie");
 
-const {
-  authHMACMiddleware,
-} = require("../../../core/middleware/authHMAC/authHMAC");
-
+const { authHMAC } = require("../../../core/middleware/authHMAC/");
+const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
+  if (req.get(appConfig.HMAC_NAME) !== undefined || !hmacWithCookie) {
+    return authHMAC(req, res, next);
+  }
+  return authCookie(req, res, next);
+};
 const handlers = require("../handlers");
 
 // Router
 actionsRouter.post(
   "/actions/room",
-  authCookieMiddleware,
+  hmacCookieHandlers(false),
   handlers.createActionRoomHandle
 );
 
 actionsRouter.put(
   "/actions/room",
-  authCookieMiddleware,
+  hmacCookieHandlers(true),
   handlers.updateActionRoomHandle
 );
 actionsRouter.get(
   "/actions/room/access-key",
-  authCookieMiddleware,
+  hmacCookieHandlers(true),
   handlers.getAccessKeyHandle
 );
 actionsRouter.put(
   "/actions/room/access-key",
-  authCookieMiddleware,
+  hmacCookieHandlers(true),
   handlers.setAccessKeyHandle
 );
 actionsRouter.post(
   "/actions/room/verify",
-  authCookieMiddleware,
+  hmacCookieHandlers(true),
   handlers.verifyAccessKeyHandle
 );
 actionsRouter.delete(
   "/actions/room/:roomId",
-  authCookieMiddleware,
+  hmacCookieHandlers(false),
   handlers.deleteActionRoomHandle
 );
 actionsRouter.post(
   "/actions/dispatch/:roomId",
-  authCookieMiddleware,
+  hmacCookieHandlers(false),
   handlers.dispatchHandle
 );
 
