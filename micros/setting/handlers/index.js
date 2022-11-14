@@ -83,7 +83,7 @@ exports.updateUserSettingHandle = async function (req, res) {
       };
       userSetting = userSetting.concat(newUserSetting);
     });
-    if (!userSetting.length > 0) {
+    if (!userSetting.length > 0 || !setting.objectId || !setting.OwnerUserId) {
       log.Error("No setting added for update Error ");
       return res
         .status(HttpStatusCode.InternalServerError)

@@ -7,13 +7,24 @@ const { v4: uuidv4 } = require("uuid");
 // const MUUID = require("uuid-mongodb");
 
 exports.saveManyUserSetting = async function (userSettingList) {
+  let bulkItem = [];
   for (const setting of userSettingList) {
     if (setting.objectId == "") setting.objectId = uuidv4();
 
     if (setting.created_date == "")
       setting.created_date = Math.floor(Date.now() / 1000);
-    return UserSetting(setting).save();
+    bulkItem.push(setting);
   }
+  console.log(bulkItem);
+  UserSetting.insertMany(bulkItem)
+    .then((bulkWriteOpResult) => {
+      console.log("BULK insert OK");
+      console.log(JSON.stringify(bulkWriteOpResult, null, 2));
+    })
+    .catch((err) => {
+      console.log("BULK insert error");
+      console.log(JSON.stringify(err, null, 2));
+    });
 };
 exports.updateUserSettingsById = async function (userSetting) {
   let bulkItem = [];
