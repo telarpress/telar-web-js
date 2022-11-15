@@ -23,13 +23,13 @@ exports.authrole = async (req, res, next) => {
     let canAccess = true;
     return next();
   }
-  log.Error("authRoleMiddleware: authRoleMiddleware Problem");
+  log.Error("authRoleMiddleware: authRole Problem");
   return res
     .status(HttpStatusCode.Unauthorized)
     .send(
       new utils.ErrorHandler(
-        "authRoleMiddleware.missingAuthRoleMiddleware",
-        "Missing auth Role Middleware"
+        "authRoleMiddleware.missingAuthRole",
+        "Can not verify current user"
       ).json()
     );
 };

@@ -15,7 +15,6 @@ exports.saveManyUserSetting = async function (userSettingList) {
       setting.created_date = Math.floor(Date.now() / 1000);
     bulkItem.push(setting);
   }
-  console.log(bulkItem);
   UserSetting.insertMany(bulkItem)
     .then((bulkWriteOpResult) => {
       console.log("BULK insert OK");

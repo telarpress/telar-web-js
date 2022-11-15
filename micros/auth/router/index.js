@@ -14,6 +14,10 @@ const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
   return authCookie(req, res, next);
 };
 
+const authRoleMiddleware = () => (req, res, next) => {
+  return authrole(req, res, next);
+};
+
 // @title Auth micro API
 // @version 1.0
 // @description This is an API to authenticate users
@@ -30,9 +34,13 @@ const handlers = require("../handlers");
 // authRouter.get("/swagger/*", swagger.HandlerDefault);
 
 //Admin
-authRouter.get("/auth/admin/check", handlers.checkAdminHandler);
-// authRouter.post("auth/admin/signup", handlers.adminSignupHandle);
-// authRouter.post("auth/admin/login", handlers.loginAdminHandler);
+authRouter.get(
+  "/auth/check/admin",
+  authRoleMiddleware(),
+  handlers.checkAdminHandler
+);
+authRouter.post("/auth/signup/admin", handlers.adminSignupHandle);
+authRouter.post("/auth/login/admin", handlers.loginAdminHandler);
 
 // Signup
 authRouter.get("/auth/signup", handlers.signupPageHandler);

@@ -6,6 +6,7 @@ const zxcvbn = require("zxcvbn");
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const Joi = require("joi");
+const { v4: uuidv4 } = require("uuid");
 var access_token = "";
 
 //Auth const
@@ -599,6 +600,129 @@ exports.checkAdminHandler = async (req, res) => {
   findUser.role == "admin" ? res.send(findUser) : res.send(false);
 };
 
+// AdminSignupHandle verify signup token
+exports.adminSignupHandle = async (req, res) => {
+  try {
+    const email = appConfig.ADMIN_USERNAME;
+    const password = appConfig.ADMIN_PASSWORD;
+    const fullName = "admin";
+
+    const userUUID = uuidv4();
+
+    const createdDate = Math.floor(Date.now() / 1000);
+
+    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    let newUserAuth = {
+      objectId: userUUID,
+      username: email,
+      password: hashPassword,
+      accessToken: "",
+      role: "admin",
+      emailVerified: true,
+      phoneVerified: true,
+      createdDate: createdDate,
+      lastUpdated: createdDate,
+    };
+
+    const userData = authService.saveUser(newUserAuth);
+
+    const newUserProfile = {
+      socialName: this.generateSocialName(profile.fullName, profile.id),
+      objectId: userUUID,
+      fullName: fullName,
+      email: username,
+      // password: profile.password,
+      //TODO: Create one ENV for select Account && primary name (email or username)
+      // emailUser: profile.email,
+
+      avatar: "https://util.telar.dev/api/avatars/" + profile.id,
+      banner: `https://picsum.photos/id/${this.generateRandomNumber(
+        1,
+        1000
+      )}/900/300/?blur`,
+      created_date: Math.floor(Date.now() / 1000),
+      last_updated: Math.floor(Date.now() / 1000),
+      permission: "Public",
+    };
+
+    const callAPIWithHMAC = await saveUserProfile(newUserProfile);
+
+    if (!callAPIWithHMAC) {
+      log.Error(callAPIWithHMAC);
+      log.Error("Error happened in callAPIWithHMAC!");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth/callAPIWithHMAC",
+            "Error happened in callAPIWithHMAC! - " + req.body.email
+          ).json()
+        );
+    }
+
+    const setup = initUserSetup(
+      newUserAuth.objectId,
+      newUserAuth.username,
+      "",
+      newUserProfile.fullName,
+      newUserAuth.role
+    );
+    if (!setup) {
+      log.Error("Cannot initialize user setup! error: " + error);
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth/canNotSaveUserProfile",
+            "Cannot initialize user setup!"
+          ).json()
+        );
+    }
+
+    //TODO: Need To Implement Create Token
+  } catch (error) {
+    log.Error(
+      "auth.adminSignupHandle",
+      "Cannot save user authentication! error: " + error
+    );
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "auth.adminSignupHandle",
+          "Cannot save user authentication!"
+        ).json()
+      );
+  }
+};
+
+// initUserSetup
+async function initUserSetup(userId, email, avatar, displayName, role) {
+  //TODO: Need To Implement
+}
+// saveUserProfile Save user profile
+async function saveUserProfile(newProfile) {
+  try {
+    const profileURL = "/profile/dto";
+    await functionCall(http.MethodPost, newProfile, profileURL, nil);
+  } catch (error) {
+    log.Error("functionCall " + profileURL + -error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "auth.saveUserProfile",
+          "Missing functionCall"
+        ).json()
+      );
+  }
+}
+
+exports.loginAdminHandler = async (req, res) => {
+  //TODO: Need To Implement
+};
 exports.logout = (req, res) => {
   res.clearCookie("he");
   res.clearCookie("pa");
@@ -1131,4 +1255,12 @@ exports.getTokens = async (req, res) => {
   }
 
   return res.send(getToken);
+};
+
+// generateSocialName
+exports.generateSocialName = function (name, uid) {
+  return (
+    name.toString().replace(" ", "").toLowerCase() +
+    uid.toString().split("-")[0]
+  );
 };

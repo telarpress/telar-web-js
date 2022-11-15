@@ -31,15 +31,7 @@ adminRouter.get(
   authRoleMiddleware(),
   handlers.setupPageHandler
 );
-adminRouter.get(
-  "/admin/actions/login",
-  hmacCookieHandlers,
-  handlers.loginPageHandler
-);
-adminRouter.post(
-  "/admin/actions/login",
-  hmacCookieHandlers,
-  handlers.loginAdminHandler
-);
+adminRouter.get("/admin/actions/login", handlers.loginPageHandler);
+adminRouter.post("/admin/actions/login", handlers.loginAdminHandler);
 
 module.exports = adminRouter;

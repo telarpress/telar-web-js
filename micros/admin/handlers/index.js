@@ -58,7 +58,6 @@ exports.setupHandler = async function (req, res) {
     }
 
     let setupStatus = "none";
-    console.log(adminSetting);
     adminSetting.forEach((setting) => {
       if (setting.name == "status") {
         setupStatus = setting.value;
@@ -104,11 +103,11 @@ exports.setupHandler = async function (req, res) {
 
     // Create setting for setup compeleted status
     const settingModel = {
-      Type: "setup",
-      List: [
+      type: "setup",
+      list: [
         {
-          Name: "status",
-          Value: "completed",
+          name: "status",
+          value: "completed",
         },
         ,
       ],
@@ -157,7 +156,7 @@ function homePageResponse(req, res) {
 }
 
 // LoginPageHandler creates a handler for logging in
-exports.loginPageHandler = async function () {
+exports.loginPageHandler = async function (req, res) {
   var loginData = {
     title: "Login - Telar Social",
     orgName: appConfig.ORG_NAME,
@@ -168,12 +167,19 @@ exports.loginPageHandler = async function () {
     signupLink: "/auth/signup",
     message: "",
   };
-  return loginPageResponse(loginData);
+  return res.render("login", loginData);
 };
+
+// checkSetupEnabled check whether setup is done already
+async function checkSetupEnabled() {
+  const url = "/auth/check/admin";
+  const adminCheck = await adminService.microCall("post", "", url);
+  return adminCheck.admin;
+}
 
 // LoginAdminHandler creates a handler for logging in telar social
 exports.loginAdminHandler = async function (req, res) {
-  const loginData = {
+  let loginData = {
     title: "Login - " + appConfig.APP_NAME,
     orgName: appConfig.ORG_NAME,
     orgAvatar: appConfig.ORG_AVATAR,
@@ -183,29 +189,29 @@ exports.loginAdminHandler = async function (req, res) {
     signupLink: "",
     message: "",
   };
-
-  const { username, password } = req.body;
-
-  if (username == "") {
-    log.Error(" Username is empty");
-    loginData.message = "Username is required!";
-    return loginPageResponse(loginData);
-  }
-
-  if (password == "") {
-    log.Error(" Password is empty");
-    loginData.message = "Password is required!";
-    return loginPageResponse(loginData);
-  }
   try {
-    const adminExist = checkSetupEnabled();
+    const { username, password } = req.body;
+
+    if (username == "") {
+      log.Error(" Username is empty");
+      loginData.message = "Username is required!";
+      return res.render("login", loginData);
+    }
+
+    if (password == "") {
+      log.Error(" Password is empty");
+      loginData.message = "Password is required!";
+      return res.render("login", loginData);
+    }
+
+    const adminExist = await checkSetupEnabled();
     if (!adminExist) var token;
     log.Error(`Admin exist: ${adminExist}`);
     if (!adminExist) {
-      const adminToken = signupAdmin();
+      const adminToken = await signupAdmin();
       token = adminToken;
     } else {
-      const adminToken = loginAdmin({ username, password });
+      const adminToken = await loginAdmin({ username, password });
       token = adminToken;
     }
     // writeTokenOnCookie wite session on cookie
@@ -213,18 +219,11 @@ exports.loginAdminHandler = async function (req, res) {
 
     return res.render("redirect", { URL: "/admin/setup" });
   } catch (error) {
-    log.Error(`Check setup enabled  ${adminCheck}`);
+    log.Error(`Check setup enabled  ${adminCheck} - Error:  ${error}`);
     loginData.message = "Internal error while checking setup!";
-    return loginPageResponse(loginData);
+    return res.render("login", loginData);
   }
 };
-
-// checkSetupEnabled check whether setup is done already
-async function checkSetupEnabled() {
-  const url = "/auth/check/admin";
-  const adminCheck = await adminService.microCall("post", "", url);
-  return adminCheck.admin;
-}
 
 // signupAdmin signup admin
 async function signupAdmin() {
@@ -238,20 +237,4 @@ async function loginAdmin(model) {
   const url = "/auth/login/admin";
   const adminLogin = await adminService.microCall("post", model, url);
   return adminLogin.token;
-}
-
-// loginPageResponse login page response template
-function loginPageResponse(data) {
-  var viewData = {
-    Title: data.title,
-    OrgName: data.orgName,
-    OrgAvatar: data.orgAvatar,
-    AppName: data.appName,
-    ActionForm: data.actionForm,
-    ResetPassLink: data.resetPassLink,
-    SignupLink: data.signupLink,
-    Message: data.message,
-  };
-
-  return res.render("login", viewData);
 }

@@ -34,8 +34,8 @@ const ProfilesSchema = new Schema(
     accessUserList: { type: String },
     permission: {
       type: [String],
-      enum: ["user", "admin", "super_admin"],
-      default: ["user"],
+      enum: ["OnlyMe", "Public", "Circles", "Custom"],
+      default: ["Public"],
     },
   },
   { collection: "userProfile" }

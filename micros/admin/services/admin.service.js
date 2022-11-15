@@ -21,10 +21,6 @@ const GateKeeper = require("../utils/hmac");
  */
 exports.microCall = async (method, data, url, headers = {}) => {
   try {
-    console.log(method);
-    console.log(data);
-    console.log(url);
-    console.log(headers);
     const digest = GateKeeper.sign(JSON.stringify(data), process.env.HMAC_KEY);
     headers["Content-type"] = "application/json;charset=UTF-8";
     headers[appConfig.HMAC_NAME] = digest;
