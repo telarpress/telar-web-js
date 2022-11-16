@@ -708,14 +708,11 @@ async function saveUserProfile(newProfile) {
     const profileURL = "/profile/dto";
     await functionCall(http.MethodPost, newProfile, profileURL, nil);
   } catch (error) {
-    log.Error("functionCall " + profileURL + -error);
+    log.Error("functionCall " + profileURL + error);
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
-        new utils.ErrorHandler(
-          "auth.saveUserProfile",
-          "Missing functionCall"
-        ).json()
+        new utils.ErrorHandler("auth.saveUserProfile", "Missing functionCall")
       );
   }
 }
