@@ -29,7 +29,7 @@ exports.setupHandler = async function (req, res) {
     }
 
     // Create admin header for http request
-    const adminHeaders = [];
+    let adminHeaders = {};
     adminHeaders["uid"] = currentUser.userId;
     adminHeaders["email"] = currentUser.email;
     adminHeaders["avatar"] = currentUser.avatar;
@@ -39,7 +39,7 @@ exports.setupHandler = async function (req, res) {
     const getSettingURL = "/setting";
     const adminSetting = await adminService.microCall(
       "get",
-      "",
+      "[]",
       getSettingURL,
       adminHeaders
     );
@@ -58,7 +58,7 @@ exports.setupHandler = async function (req, res) {
     }
 
     let setupStatus = "none";
-    adminSetting.forEach((setting) => {
+    adminSetting.list.forEach((setting) => {
       if (setting.name == "status") {
         setupStatus = setting.value;
       }
@@ -68,11 +68,14 @@ exports.setupHandler = async function (req, res) {
       return homePageResponse();
     }
     // Create post index
-    let postIndexURL = appConfig.InternalGateway + "/posts/index";
-    let postIndexErr = adminService.microCall("post", "", postIndexURL);
-
-    if (postIndexErr != "") {
-      log.Error(`[createPostIndex] ${postIndexURL}`);
+    try {
+      // const postIndexURL = appConfig.InternalGateway + "/profile/index";
+      const postIndexURL = "http://localhost" + "/profile/index";
+      await adminService.microCall("post", "[]", postIndexURL);
+    } catch (error) {
+      log.Error(
+        `[createPostIndex] ${appConfig.InternalGateway + "/profile/index"}`
+      );
 
       return res
         .status(HttpStatusCode.InternalServerError)
@@ -80,23 +83,6 @@ exports.setupHandler = async function (req, res) {
           new utils.ErrorHandler(
             "internal/createPostIndex",
             "Error happened while creating post index!"
-          ).json()
-        );
-    }
-
-    // Create profile index
-    let profileIndexURL = appConfig.InternalGateway + "/profile/index";
-    let profileIndexErr = adminService.microCall("post", "", profileIndexURL);
-
-    if (profileIndexErr != "") {
-      log.Error(`[profileIndex] ${profileIndexErr}`);
-
-      return res
-        .status(HttpStatusCode.InternalServerError)
-        .send(
-          new utils.ErrorHandler(
-            "internal/profileIndex",
-            "Error happened while creating profile index!"
           ).json()
         );
     }
@@ -117,14 +103,14 @@ exports.setupHandler = async function (req, res) {
 
     // Send request for setting
     const settingURL = "/setting";
-    const settingErr = adminService.microCall(
-      "post",
-      settingBytes,
-      settingURL,
-      adminHeaders
-    );
-
-    if (settingErr != "") {
+    try {
+      await adminService.microCall(
+        "post",
+        settingBytes,
+        settingURL,
+        adminHeaders
+      );
+    } catch (error) {
       log.Error(`[createSetting] ${settingURL}`);
       return res
         .status(HttpStatusCode.BadRequest)
@@ -135,8 +121,8 @@ exports.setupHandler = async function (req, res) {
           ).json()
         );
     }
-
-    return homePageResponse();
+    return res.render("home");
+    // homePageResponse();
   } catch (error) {
     log.Error(`Admin Setup Handler Error ${error}`);
     return res
@@ -173,7 +159,7 @@ exports.loginPageHandler = async function (req, res) {
 // checkSetupEnabled check whether setup is done already
 async function checkSetupEnabled() {
   const url = "/auth/check/admin";
-  const adminCheck = await adminService.microCall("post", "", url);
+  const adminCheck = await adminService.microCall("post", "[]", url);
   return adminCheck.admin;
 }
 
@@ -219,7 +205,7 @@ exports.loginAdminHandler = async function (req, res) {
 
     return res.render("redirect", { URL: "/admin/setup" });
   } catch (error) {
-    log.Error(`Check setup enabled  ${adminCheck} - Error:  ${error}`);
+    log.Error(`Check setup enabled Error:  ${error}`);
     loginData.message = "Internal error while checking setup!";
     return res.render("login", loginData);
   }
@@ -228,7 +214,7 @@ exports.loginAdminHandler = async function (req, res) {
 // signupAdmin signup admin
 async function signupAdmin() {
   const url = "/auth/signup/admin";
-  const adminsignup = await adminService.microCall("post", "", url);
+  const adminsignup = await adminService.microCall("post", "[]", url);
   return adminsignup.token;
 }
 

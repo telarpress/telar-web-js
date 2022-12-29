@@ -6,7 +6,6 @@ const zxcvbn = require("zxcvbn");
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const Joi = require("joi");
-const { v4: uuidv4 } = require("uuid");
 var access_token = "";
 
 //Auth const
@@ -576,16 +575,21 @@ exports.loginTelarHandler = async (req, res) => {
 
 // CheckAdmin find user auth by userId
 exports.checkAdminHandler = async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("checkAdminHandler: Token Problem");
+  const currentUserId = res.locals.user.userId;
+
+  if (currentUserId == null || ownerUserId != currentUserId) {
+    log.Error("[checkAdminHandler] Can not get current user");
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
-        new utils.ErrorHandler("auth.missingcheckadmin", "Missing Token").json()
+        new utils.ErrorHandler(
+          "auth.invalidCurrentUser",
+          "Can not get current user"
+        ).json()
       );
   }
-  const findUser = authService.findUserByAccessToken(token);
+
+  const findUser = await authService.findUserByAccessToken(currentUserId);
   if (!findUser) {
     log.Error("checkAdminHandler: Not Found User With Exist Token");
     return res
@@ -626,10 +630,10 @@ exports.adminSignupHandle = async (req, res) => {
       lastUpdated: createdDate,
     };
 
-    const userData = authService.saveUser(newUserAuth);
+    const userData = await authService.saveUser(newUserAuth);
 
     const newUserProfile = {
-      socialName: this.generateSocialName(profile.fullName, profile.id),
+      socialName: await this.generateSocialName(profile.fullName, profile.id),
       objectId: userUUID,
       fullName: fullName,
       email: username,
@@ -662,7 +666,7 @@ exports.adminSignupHandle = async (req, res) => {
         );
     }
 
-    const setup = initUserSetup(
+    const setup = await initUserSetup(
       newUserAuth.objectId,
       newUserAuth.username,
       "",
@@ -681,7 +685,29 @@ exports.adminSignupHandle = async (req, res) => {
         );
     }
 
-    //TODO: Need To Implement Create Token
+    const tokenModel = {
+      token: { ProviderAccessToken: {} },
+      oauthProvider: "",
+      providerName: "telar",
+      profile: { name: fullName, id: userUUID, login: email },
+      organizationList: "Telar",
+      claim: {
+        displayName: fullName,
+        socialName: socialName,
+        email: email,
+        userId: userUUID.String(),
+        banner: newUserProfile.banner,
+        tagLine: newUserProfile.tagLine,
+        role: "admin",
+        createdDate: newUserProfile.created_date,
+      },
+    };
+
+    const session = await generateTokens.createToken(tokenModel);
+
+    log.Error(`\nSession is created: ${session} \n`);
+
+    return res.status(HttpStatusCode.OK).send({ token: session });
   } catch (error) {
     log.Error(
       "auth.adminSignupHandle",
@@ -700,13 +726,92 @@ exports.adminSignupHandle = async (req, res) => {
 
 // initUserSetup
 async function initUserSetup(userId, email, avatar, displayName, role) {
-  //TODO: Need To Implement
+  // Create admin header for http request
+  let adminHeaders = {};
+  adminHeaders["uid"] = userId;
+  adminHeaders["email"] = email;
+  adminHeaders["avatar"] = avatar;
+  adminHeaders["displayName"] = displayName;
+  adminHeaders["role"] = role;
+
+  try {
+    const circleURL = `/circles/following/${userId}`;
+    await functionCall("post", [], circleURL, adminHeaders);
+  } catch (error) {
+    log.Error("functionCall " + circleURL + error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler("auth.initUserSetup", "Missing functionCall")
+      );
+  }
+
+  // Create default setting for user
+  const settingModel = {
+    List: [
+      {
+        Type: "notification",
+        List: [
+          {
+            Name: "send_email_on_like",
+            Value: "false",
+          },
+          {
+            Name: "send_email_on_follow",
+            Value: "false",
+          },
+          {
+            Name: "send_email_on_comment_post",
+            Value: "false",
+          },
+          {
+            Name: "send_email_app_news",
+            Value: "true",
+          },
+        ],
+      },
+      {
+        Type: "lang",
+        List: [
+          {
+            Name: "current",
+            Value: "en",
+          },
+        ],
+      },
+    ],
+  };
+
+  // Send request for setting
+  try {
+    const settingURL = "/setting/";
+    await functionCall("post", settingBytes, settingURL, adminHeaders);
+  } catch (error) {
+    log.Error("functionCall " + settingURL + error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(new utils.ErrorHandler("auth.settingURL", "Missing functionCall"));
+  }
+
+  const privateKey = uuidv4();
+
+  const accessKey = uuidv4();
+
+  // Send request for action room
+  const actiomRoomBytes = {
+    ownerUserId: userId,
+    privateKey: privateKey,
+    accessKey: accessKey,
+  };
+
+  const actionRoomURL = "/actions/room";
+  await functionCall("post", actiomRoomBytes, actionRoomURL, adminHeaders);
 }
 // saveUserProfile Save user profile
 async function saveUserProfile(newProfile) {
   try {
     const profileURL = "/profile/dto";
-    await functionCall(http.MethodPost, newProfile, profileURL, nil);
+    await functionCall("post", newProfile, profileURL, nil);
   } catch (error) {
     log.Error("functionCall " + profileURL + error);
     return res

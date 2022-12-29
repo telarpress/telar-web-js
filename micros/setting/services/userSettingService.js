@@ -69,7 +69,6 @@ exports.findIdByAccessToken = async function (token) {
 
 exports.getAllUserSetting = async function (userId) {
   const userSetting = await UserSetting.find({ ownerUserId: userId });
-
   let groupSettingsMap = [];
   userSetting.forEach((setting) => {
     let settingModel = {

@@ -7,6 +7,7 @@ const {
 } = require("../../../core/middleware/authcookie/authcookie");
 
 const { authHMAC } = require("../../../core/middleware/authHMAC/");
+const { authrole } = require("../../../core/middleware/authrole/");
 const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
   if (req.get(appConfig.HMAC_NAME) !== undefined || !hmacWithCookie) {
     return authHMAC(req, res, next);
@@ -34,9 +35,9 @@ const handlers = require("../handlers");
 // authRouter.get("/swagger/*", swagger.HandlerDefault);
 
 //Admin
-authRouter.get(
+authRouter.post(
   "/auth/check/admin",
-  authRoleMiddleware(),
+  hmacCookieHandlers(true),
   handlers.checkAdminHandler
 );
 authRouter.post("/auth/signup/admin", handlers.adminSignupHandle);
