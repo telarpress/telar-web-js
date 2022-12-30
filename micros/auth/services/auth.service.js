@@ -166,7 +166,9 @@ async function getUsersLangSettings(objectId, userInfoInReq) {
     return `Cannot send request to /setting/dto/ids - ${error}`;
   }
 }
-
+exports.functionCall = async (method, data, url, headers) => {
+  return await microCall(method, data, url, headers);
+};
 // microCall send request to another function/microservice using cookie validation
 /**
  *
@@ -324,7 +326,13 @@ exports.findUserByAccessToken = async function (userId) {
     throw new Error(error);
   }
 };
-
+exports.checkAdmin = async function () {
+  try {
+    return await UserAuth.findOne({ role: "admin" });
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 exports.changeUserPasswordByAccessToken = async function (
   oldPassword,
   token,
@@ -418,6 +426,6 @@ exports.addCounterAndLastUpdate = async (objectId) => {
   );
 };
 
-exports.saveUser = function (findUser) {
-  findUser.save();
+exports.saveUser = async function (findUser) {
+  return await UserAuth.insertMany(findUser);
 };

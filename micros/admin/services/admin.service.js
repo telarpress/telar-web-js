@@ -46,44 +46,25 @@ exports.microCall = async (method, data, url, headers = {}) => {
     // handle axios error and throw correct error
     // https://github.com/axios/axios#handling-errors
     console.log(
-      `Error while sending admin check request!: callAPIWithHMAC ${url}`
+      `Error while sending admin check request!: callAPIWithHMAC ${url}` + error
     );
     return Error(
-      "Error while sending admin check request!: admin/callAPIWithHMAC"
+      "Error while sending admin check request!: admin/callAPIWithHMAC" + error
     );
   }
 };
 
 exports.writeSessionOnCookie = async function (res, session) {
   const parts = session.split(".");
-  const headerCookie = {
-    HTTPOnly: true,
-    Name: appConfig.HEADER_COOKIE_NAME,
-    Value: parts[0],
-    Path: "/",
-    // expires: new Date(Date.now() + Number(appConfig.COOKIE_EXPIRY)),
-    Domain: appConfig.COOKIE_ROOT_DOMAIN,
+  const cookieOptions = {
+    httpOnly: true,
+    path: "/",
+    expires: new Date(Date.now() + Number(appConfig.COOKIE_EXPIRY)),
+    domain: appConfig.COOKIE_ROOT_DOMAIN,
   };
 
-  const payloadCookie = {
-    // HttpOnly: true,
-    Name: appConfig.PayloadCookieName,
-    Value: parts[1],
-    Path: "/",
-    // expires: new Date(Date.now() + Number(appConfig.COOKIE_EXPIRY)),
-    Domain: appConfig.COOKIE_ROOT_DOMAIN,
-  };
-
-  const signCookie = {
-    HTTPOnly: true,
-    Name: appConfig.SignatureCookieName,
-    Value: parts[2],
-    Path: "/",
-    // expires: new Date(Date.now() + Number(appConfig.COOKIE_EXPIRY)),
-    Domain: appConfig.COOKIE_ROOT_DOMAIN,
-  };
-  // Set cookie
-  res.cookie(headerCookie);
-  res.cookie(payloadCookie);
-  res.cookie(signCookie);
+  // Set cookies
+  res.cookie(appConfig.HEADER_COOKIE_NAME, parts[0], cookieOptions); // headerCookie
+  res.cookie(appConfig.PAYLOAD_COOKIE_NAME, parts[1], cookieOptions); // payloadCookie
+  res.cookie(appConfig.SIGNATURE_COOKIE_NAME, parts[2], cookieOptions); // signCookie
 };

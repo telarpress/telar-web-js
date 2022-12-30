@@ -24,8 +24,7 @@ exports.createToken = async function (tokenModel) {
       accessToken: tokenModel.access_token,
       claim: tokenModel.claim,
     };
-    const session = await jwt.sign(claims, privateKey, jwtOptions);
-    return session;
+    return await jwt.sign(claims, privateKey, jwtOptions);
   } catch (error) {
     log.Error(`unable to parse private key: ${error}`);
     return "", `unable to parse private key: ${error}`;

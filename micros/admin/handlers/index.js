@@ -160,7 +160,7 @@ exports.loginPageHandler = async function (req, res) {
 async function checkSetupEnabled() {
   const url = "/auth/check/admin";
   const adminCheck = await adminService.microCall("post", "[]", url);
-  return adminCheck.admin;
+  return adminCheck;
 }
 
 // LoginAdminHandler creates a handler for logging in telar social
@@ -191,19 +191,22 @@ exports.loginAdminHandler = async function (req, res) {
     }
 
     const adminExist = await checkSetupEnabled();
-    if (!adminExist) var token;
+    let tokenObject;
     log.Error(`Admin exist: ${adminExist}`);
     if (!adminExist) {
-      const adminToken = await signupAdmin();
-      token = adminToken;
+      tokenObject = await signupAdmin();
     } else {
-      const adminToken = await loginAdmin({ username, password });
-      token = adminToken;
+      tokenObject = await loginAdmin({
+        username: username,
+        password: password,
+      });
     }
     // writeTokenOnCookie wite session on cookie
-    await adminService.writeSessionOnCookie(res, token);
+    await adminService.writeSessionOnCookie(res, tokenObject.token);
 
-    return res.render("redirect", { URL: "/admin/setup" });
+    return res
+      .status(HttpStatusCode.OK)
+      .render("redirect", { URL: "/admin/setup" });
   } catch (error) {
     log.Error(`Check setup enabled Error:  ${error}`);
     loginData.message = "Internal error while checking setup!";
@@ -214,13 +217,11 @@ exports.loginAdminHandler = async function (req, res) {
 // signupAdmin signup admin
 async function signupAdmin() {
   const url = "/auth/signup/admin";
-  const adminsignup = await adminService.microCall("post", "[]", url);
-  return adminsignup.token;
+  return await adminService.microCall("post", "[]", url);
 }
 
 // loginAdmin login admin
 async function loginAdmin(model) {
   const url = "/auth/login/admin";
-  const adminLogin = await adminService.microCall("post", model, url);
-  return adminLogin.token;
+  return await adminService.microCall("post", model, url);
 }

@@ -37,7 +37,7 @@ const handlers = require("../handlers");
 //Admin
 authRouter.post(
   "/auth/check/admin",
-  hmacCookieHandlers(true),
+  hmacCookieHandlers(false),
   handlers.checkAdminHandler
 );
 authRouter.post("/auth/signup/admin", handlers.adminSignupHandle);

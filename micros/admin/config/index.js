@@ -23,6 +23,11 @@ exports.appConfig = {
   SMTP_EMAIL_USER: process.env.EMAIL_USER,
   SMTP_EMAIL_PASSWORD: process.env.EMAIL_PASS,
   REF_EMAIL: config.environment.ref_email,
+  HEADER_COOKIE_NAME: config.environment.header_cookie_name,
+  PAYLOAD_COOKIE_NAME: config.environment.payload_cookie_name,
+  SIGNATURE_COOKIE_NAME: config.environment.signature_cookie_name,
+  COOKIE_ROOT_DOMAIN: config.environment.cookie_root_domain,
+  COOKIE_EXPIRY: process.env.COOKIE_EXPIRY,
 };
 
 // decodeBase64 Decode base64 string
