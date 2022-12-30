@@ -31,22 +31,33 @@ exports.setupHandler = async function (req, res) {
     // Create admin header for http request
     let adminHeaders = {};
     adminHeaders["uid"] = currentUser.userId;
+    adminHeaders["userId"] = currentUser.userId;
     adminHeaders["email"] = currentUser.email;
     adminHeaders["avatar"] = currentUser.avatar;
     adminHeaders["displayName"] = currentUser.displayName;
     adminHeaders["role"] = currentUser.role;
+
     // Send request for setting
     const getSettingURL = "/setting";
-    const adminSetting = await adminService.microCall(
-      "get",
-      "[]",
-      getSettingURL,
-      adminHeaders
-    );
+    try {
+      const adminSetting = await adminService.microCall(
+        "get",
+        "[]",
+        getSettingURL,
+        adminHeaders
+      );
+      let setupStatus = "none";
+      adminSetting.list.forEach((setting) => {
+        if (setting.name == "status") {
+          setupStatus = setting.value;
+        }
+      });
 
-    if (!adminSetting) {
-      log.Error(`[functionCallByHeader] ${getSettingURL} - ${adminSetting}`);
-
+      if (setupStatus == "completed") {
+        return res.render("home");
+      }
+    } catch (error) {
+      log.Error(`[functionCallByHeader] ${getSettingURL}`);
       return res
         .status(HttpStatusCode.BadRequest)
         .send(
@@ -57,20 +68,9 @@ exports.setupHandler = async function (req, res) {
         );
     }
 
-    let setupStatus = "none";
-    adminSetting.list.forEach((setting) => {
-      if (setting.name == "status") {
-        setupStatus = setting.value;
-      }
-    });
-
-    if (setupStatus == "completed") {
-      return homePageResponse();
-    }
     // Create post index
     try {
-      // const postIndexURL = appConfig.InternalGateway + "/profile/index";
-      const postIndexURL = "http://localhost" + "/profile/index";
+      const postIndexURL = appConfig.InternalGateway + "/profile/index";
       await adminService.microCall("post", "[]", postIndexURL);
     } catch (error) {
       log.Error(
@@ -89,24 +89,25 @@ exports.setupHandler = async function (req, res) {
 
     // Create setting for setup compeleted status
     const settingModel = {
-      type: "setup",
       list: [
         {
-          name: "status",
-          value: "completed",
+          type: "setup",
+          list: [
+            {
+              name: "status",
+              value: "completed",
+            },
+          ],
         },
-        ,
       ],
     };
-
-    const settingBytes = JSON.stringify(settingModel);
 
     // Send request for setting
     const settingURL = "/setting";
     try {
       await adminService.microCall(
         "post",
-        settingBytes,
+        settingModel,
         settingURL,
         adminHeaders
       );
@@ -135,11 +136,6 @@ exports.setupHandler = async function (req, res) {
       );
   }
 };
-
-// homePageResponse login page response template
-function homePageResponse(req, res) {
-  return res.render("home");
-}
 
 // LoginPageHandler creates a handler for logging in
 exports.loginPageHandler = async function (req, res) {
