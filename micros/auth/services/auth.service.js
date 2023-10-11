@@ -166,7 +166,9 @@ async function getUsersLangSettings(objectId, userInfoInReq) {
     return `Cannot send request to /setting/dto/ids - ${error}`;
   }
 }
-
+exports.functionCall = async (method, data, url, headers) => {
+  return await microCall(method, data, url, headers);
+};
 // microCall send request to another function/microservice using cookie validation
 /**
  *
@@ -233,7 +235,11 @@ exports.getSettingPath = async function (userId, settingType, settingKey) {
 // createDefaultLangSetting
 exports.createDefaultLangSetting = async function (userInfoInReq) {
   const settingBytes = {
-    userInfoInReq,
+    uid: userInfoInReq.objectId,
+    email: userInfoInReq.username,
+    avatar: userInfoInReq.avatar,
+    displayName: userInfoInReq.fullName,
+    role: userInfoInReq.role,
     list: [
       {
         type: "lang",
@@ -313,15 +319,20 @@ exports.CompareHash = async function (reqPassword, userPassword) {
 exports.checkVerifyToken = async function (token) {
   return await jwt.verify(token, appConfig.ACCESS_TPK);
 };
-exports.findUserByAccessToken = async function (token) {
+exports.findUserByAccessToken = async function (userId) {
   try {
-    const decode = jwt.verify(token, appConfig.ACCESS_TPK);
-    return UserAuth.findOne({ objectId: decode.id });
+    return UserAuth.findOne({ objectId: userId });
   } catch (error) {
     throw new Error(error);
   }
 };
-
+exports.checkAdmin = async function () {
+  try {
+    return await UserAuth.findOne({ role: "admin" });
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 exports.changeUserPasswordByAccessToken = async function (
   oldPassword,
   token,
@@ -415,6 +426,6 @@ exports.addCounterAndLastUpdate = async (objectId) => {
   );
 };
 
-exports.saveUser = function (findUser) {
-  findUser.save();
+exports.saveUser = async function (findUser) {
+  return await UserAuth.insertMany(findUser);
 };

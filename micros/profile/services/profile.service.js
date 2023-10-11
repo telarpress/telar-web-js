@@ -72,7 +72,7 @@ exports.getProfiles = function () {
 };
 
 // generateSocialName
-exports.generateSocialName = function (name, uid) {
+exports.generateSocialName = async function (name, uid) {
   return (
     name.toString().replace(" ", "").toLowerCase() +
     uid.toString().split("-")[0]
@@ -85,9 +85,9 @@ exports.generateRandomNumber = function (min, max) {
 };
 
 // CreateProfileHandle handle create a new profile
-exports.createDtoProfileHandle = function (profile) {
+exports.createDtoProfileHandle = async function (profile) {
   const newProfile = new UserProfile({
-    socialName: this.generateSocialName(profile.fullName, profile.id),
+    socialName: await this.generateSocialName(profile.fullName, profile.id),
     objectId: profile.id,
     fullName: profile.fullName,
     email: profile.email,
@@ -102,9 +102,9 @@ exports.createDtoProfileHandle = function (profile) {
     )}/900/300/?blur`,
     created_date: Math.floor(Date.now() / 1000),
     last_updated: Math.floor(Date.now() / 1000),
-    permission: "user",
+    permission: "Public",
   });
-  return newProfile.save();
+  return await newProfile.save();
 };
 
 exports.updateProfile = async function (profile) {

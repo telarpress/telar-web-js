@@ -7,11 +7,16 @@ const {
 } = require("../../../core/middleware/authcookie/authcookie");
 
 const { authHMAC } = require("../../../core/middleware/authHMAC/");
+const { authrole } = require("../../../core/middleware/authrole/");
 const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
   if (req.get(appConfig.HMAC_NAME) !== undefined || !hmacWithCookie) {
     return authHMAC(req, res, next);
   }
   return authCookie(req, res, next);
+};
+
+const authRoleMiddleware = () => (req, res, next) => {
+  return authrole(req, res, next);
 };
 
 // @title Auth micro API
@@ -30,9 +35,13 @@ const handlers = require("../handlers");
 // authRouter.get("/swagger/*", swagger.HandlerDefault);
 
 //Admin
-authRouter.get("/auth/admin/check", handlers.checkAdminHandler);
-// authRouter.post("auth/admin/signup", handlers.adminSignupHandle);
-// authRouter.post("auth/admin/login", handlers.loginAdminHandler);
+authRouter.post(
+  "/auth/check/admin",
+  hmacCookieHandlers(false),
+  handlers.checkAdminHandler
+);
+authRouter.post("/auth/signup/admin", handlers.adminSignupHandle);
+authRouter.post("/auth/login/admin", handlers.loginAdminHandler);
 
 // Signup
 authRouter.get("/auth/signup", handlers.signupPageHandler);

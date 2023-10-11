@@ -33,23 +33,23 @@ exports.authHMAC = (req, res, next) => {
       res.locals.user = {};
       return next();
     }
-
-    const userUUID = req.header["uid"];
+    const userUUID = req.get("uid");
     let createdDate = Math.floor(Date.now() / 1000);
     if (req.body.createdDate != "") {
       createdDate = parseInt(req.body.createdDate, 64);
     }
 
     res.locals.user = {
-      userID: userUUID,
-      username: req.header["email"],
-      socialName: req.header["socialName"],
-      displayName: req.header["displayName"],
-      avatar: req.header["avatar"],
-      banner: req.header["banner"],
-      tagLine: req.header["tagLine"],
+      uid: userUUID,
+      userId: userUUID,
+      username: req.get("email"),
+      socialName: req.get("socialName"),
+      displayName: req.get("displayName"),
+      avatar: req.get("avatar"),
+      banner: req.get("banner"),
+      tagLine: req.get("tagLine"),
       createdDate: createdDate,
-      systemRole: req.header["role"],
+      systemRole: req.get("role"),
     };
     next();
   } catch (error) {

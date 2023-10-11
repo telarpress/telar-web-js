@@ -8,12 +8,11 @@ const log = require("../../../core/utils/errorLogger");
 exports.createSettingGroupHandle = async function (req, res) {
   try {
     const { list } = req.body;
-
     let userSettingList = [];
     list.forEach((settings) => {
       settings.list.forEach((setting) => {
         let newUserSetting = {
-          ownerUserId: res.locals.user.uid,
+          ownerUserId: res.locals.user.userId,
           name: setting.name,
           value: setting.value,
           type: settings.type,
@@ -27,7 +26,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 
     return await res
       .status(HttpStatusCode.OK)
-      .send({ objectId: res.locals.user.uid })
+      .send({ objectId: res.locals.user.userId })
       .json();
   } catch (error) {
     log.Error("Save UserSetting Error " + error);
@@ -46,7 +45,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 exports.updateUserSettingHandle = async function (req, res) {
   try {
     const { type, creationDate, ownerUserId, list } = req.body;
-    const currentUserId = res.locals.user.uid;
+    const currentUserId = res.locals.user.userId;
 
     if (currentUserId == null || ownerUserId != currentUserId) {
       log.Error("[UpdateUserSettingHandle] Can not get current user");
@@ -83,7 +82,7 @@ exports.updateUserSettingHandle = async function (req, res) {
       };
       userSetting = userSetting.concat(newUserSetting);
     });
-    if (!userSetting.length > 0) {
+    if (!userSetting.length > 0 || !setting.objectId || !setting.OwnerUserId) {
       log.Error("No setting added for update Error ");
       return res
         .status(HttpStatusCode.InternalServerError)
@@ -116,9 +115,10 @@ exports.updateUserSettingHandle = async function (req, res) {
 
 // DeleteUserAllSettingHandle handle delete all userSetting
 exports.deleteUserAllSettingHandle = async function (req, res) {
+  let currentUserId;
   try {
     const userID = req.body.userId;
-    const currentUserId = res.locals.user.uid;
+    currentUserId = res.locals.user.userId;
 
     if (currentUserId == null || userID != currentUserId) {
       log.Error("[DeleteUserAllSettingHandle] Can not get current user");
@@ -148,7 +148,7 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
 };
 exports.getAllUserSetting = async function (req, res) {
   try {
-    const currentUserId = res.locals.user.uid;
+    const currentUserId = res.locals.user.userId;
     const userSetting = await userSettingService.getAllUserSetting(
       currentUserId
     );

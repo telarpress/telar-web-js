@@ -62,6 +62,8 @@ exports.appConfig = {
   SESSION_SECRET_KEY: process.env.SESSION_SECRET_KEY,
   HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
+  ADMIN_USERNAME: process.env.ADMIN_USERNAME,
+  ADMIN_PASSWORD: process.env.ADMIN_USERNAME,
 };
 // decodeBase64 Decode base64 string
 function decodeBase64(encodedStrings) {

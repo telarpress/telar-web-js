@@ -265,7 +265,6 @@ exports.createNotificationHandle = async function (req, res) {
         notificationActionBytes,
         config
       );
-      console.log(response.data);
       return res.send({ objectId: newNotification.objectId }).json();
     } catch (error) {
       if (axios.isAxiosError(error))

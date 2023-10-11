@@ -575,30 +575,397 @@ exports.loginTelarHandler = async (req, res) => {
 
 // CheckAdmin find user auth by userId
 exports.checkAdminHandler = async (req, res) => {
-  const token = req.cookies.token;
-  if (!token) {
-    log.Error("checkAdminHandler: Token Problem");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler("auth.missingcheckadmin", "Missing Token").json()
-      );
-  }
-  const findUser = authService.findUserByAccessToken(token);
-  if (!findUser) {
-    log.Error("checkAdminHandler: Not Found User With Exist Token");
+  try {
+    const checkAdmin = await authService.checkAdmin();
+    res.send(checkAdmin);
+  } catch (error) {
+    log.Error("checkAdminHandler: Not Found Admin User");
     return res
       .status(HttpStatusCode.NotFound)
       .send(
         new utils.ErrorHandler(
           "auth.missingcheckadmin",
-          "Not Found User With Exist Token"
+          "Not Found Admin User"
         ).json()
       );
   }
-  findUser.role == "admin" ? res.send(findUser) : res.send(false);
 };
 
+// AdminSignupHandle verify signup token
+exports.adminSignupHandle = async (req, res) => {
+  try {
+    const email = appConfig.ADMIN_USERNAME;
+    const password = appConfig.ADMIN_PASSWORD;
+    const fullName = "admin";
+
+    const userUUID = uuidv4();
+
+    const createdDate = Math.floor(Date.now() / 1000);
+
+    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    let newUserAuth = {
+      objectId: userUUID,
+      username: email,
+      password: hashPassword,
+      accessToken: "",
+      role: "admin",
+      emailVerified: true,
+      phoneVerified: true,
+      createdDate: createdDate,
+      lastUpdated: createdDate,
+    };
+    await authService.saveUser(newUserAuth);
+
+    const newUserProfile = {
+      socialName: await this.generateSocialName(fullName, userUUID),
+      id: userUUID,
+      fullName: fullName,
+      email: email,
+      // password: profile.password,
+      //TODO: Create one ENV for select Account && primary name (email or username)
+      // emailUser: profile.email,
+
+      avatar: "https://util.telar.dev/api/avatars/" + userUUID,
+      banner: `https://picsum.photos/id/${this.generateRandomNumber(
+        1,
+        1000
+      )}/900/300/?blur`,
+      created_date: Math.floor(Date.now() / 1000),
+      last_updated: Math.floor(Date.now() / 1000),
+      permission: "Public",
+    };
+
+    try {
+      await saveUserProfile(newUserProfile);
+    } catch (error) {
+      log.Error("Error happened in callAPIWithHMAC!");
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth/callAPIWithHMAC",
+            "Error happened in callAPIWithHMAC! - " + req.body.email
+          ).json()
+        );
+    }
+
+    try {
+      await initUserSetup(
+        newUserAuth.objectId,
+        newUserAuth.username,
+        newUserProfile.avatar,
+        newUserProfile.fullName,
+        newUserAuth.role
+      );
+    } catch (error) {
+      log.Error("Cannot initialize user setup! error: " + error);
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth/canNotSaveUserProfile",
+            "Cannot initialize user setup!"
+          ).json()
+        );
+    }
+
+    const tokenModel = {
+      token: { ProviderAccessToken: {} },
+      oauthProvider: "",
+      providerName: "telar",
+      profile: { name: fullName, id: userUUID, login: email },
+      organizationList: "Telar",
+      claim: {
+        displayName: fullName,
+        socialName: newUserProfile.socialName,
+        email: email,
+        userId: userUUID,
+        banner: newUserProfile.banner,
+        tagLine: newUserProfile.tagLine,
+        role: "admin",
+        createdDate: newUserProfile.created_date,
+      },
+    };
+
+    const session = await generateTokens.createToken(tokenModel);
+    log.Error(`\nSession is created: ${session} \n`);
+
+    return res.status(HttpStatusCode.OK).send({ token: session });
+  } catch (error) {
+    log.Error(
+      "auth.adminSignupHandle",
+      "Cannot save user authentication! error: " + error
+    );
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "auth.adminSignupHandle",
+          "Cannot save user authentication!"
+        ).json()
+      );
+  }
+};
+
+// generateRandomNumber
+exports.generateRandomNumber = function (min, max) {
+  return Math.floor(Math.random() * max) + min;
+};
+
+// initUserSetup
+async function initUserSetup(userId, email, avatar, displayName, role) {
+  // Create admin header for http request
+  let adminHeaders = {};
+  adminHeaders["uid"] = userId;
+  adminHeaders["email"] = email;
+  adminHeaders["avatar"] = avatar;
+  adminHeaders["displayName"] = displayName;
+  adminHeaders["role"] = role;
+
+  const circleURL = `/circles/following/${userId}`;
+  try {
+    await authService.functionCall("post", [], circleURL, adminHeaders);
+  } catch (error) {
+    log.Error("functionCall " + circleURL + error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler("auth.initUserSetup", "Missing functionCall")
+      );
+  }
+
+  // Create default setting for user
+  const settingModel = {
+    list: [
+      {
+        type: "notification",
+        list: [
+          {
+            name: "send_email_on_like",
+            value: "false",
+          },
+          {
+            name: "send_email_on_follow",
+            value: "false",
+          },
+          {
+            name: "send_email_on_comment_post",
+            value: "false",
+          },
+          {
+            name: "send_email_app_news",
+            value: "true",
+          },
+        ],
+      },
+      {
+        type: "lang",
+        list: [
+          {
+            name: "current",
+            value: "en",
+          },
+        ],
+      },
+    ],
+  };
+
+  // Send request for setting
+  const settingURL = "/setting/";
+  try {
+    await authService.functionCall(
+      "post",
+      settingModel,
+      settingURL,
+      adminHeaders
+    );
+  } catch (error) {
+    log.Error("functionCall " + settingURL + error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(new utils.ErrorHandler("auth.settingURL", "Missing functionCall"));
+  }
+
+  const privateKey = uuidv4();
+
+  const accessKey = uuidv4();
+
+  // Send request for action room
+  const actiomRoomBytes = {
+    ownerUserId: userId,
+    privateKey: privateKey,
+    accessKey: accessKey,
+  };
+
+  const actionRoomURL = "/actions/room";
+  await authService.functionCall(
+    "post",
+    actiomRoomBytes,
+    actionRoomURL,
+    adminHeaders
+  );
+}
+// saveUserProfile Save user profile
+async function saveUserProfile(newProfile) {
+  const profileURL = "/profile/dto";
+  try {
+    return await authService.functionCall("post", newProfile, profileURL);
+  } catch (error) {
+    log.Error("functionCall " + profileURL + error);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler("auth.saveUserProfile", "Missing functionCall")
+      );
+  }
+}
+
+// LoginAdminHandler creates a handler for logging in telar social
+exports.loginAdminHandler = async (req, res) => {
+  const { error } = logInBodyValidation(req.body);
+  if (error) {
+    log.Error("loginHandler: missing validation");
+    return res
+      .status(HttpStatusCode.BadRequest)
+      .send(
+        new utils.ErrorHandler(
+          "auth.loginmissingvalidation",
+          "Missing validation"
+        ).json()
+      );
+  }
+  const foundUser = await authService.findByUsername(req.body.username);
+  if (!foundUser) {
+    log.Error(`loginHandler: Invalid email or password`);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "auth.loginInvalid",
+          "Invalid email or password"
+        ).json()
+      );
+  }
+
+  const CompareHash = await authService.CompareHash(
+    req.body.password,
+    foundUser.password
+  );
+
+  if (!CompareHash) {
+    log.Error(`loginHandler: Password doesn't match ${CompareHash}`);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "auth.passwordNotMatch",
+          "Password doesn't match!"
+        ).json()
+      );
+  }
+
+  try {
+    const profileChannel = authService.getUserProfileByID(foundUser.objectId);
+    if (!profileChannel) {
+      log.Error(`loginHandler: Profile doesn't exist ${profileChannel}`);
+    }
+    let avatar;
+    let socialName;
+    await profileChannel.then((profile) => {
+      avatar = profile.avatar;
+      socialName = profile.socialName;
+    });
+
+    const langChannel = authService.readLanguageSettingAsync(
+      foundUser.objectId,
+      {
+        userId: foundUser.objectId,
+        username: foundUser.username,
+        systemRole: foundUser.role,
+        avatar: avatar,
+        displayName: socialName,
+      }
+    );
+    const [profileResult, langResult] = await Promise.all([
+      profileChannel,
+      langChannel,
+    ]);
+    let currentUserLang = "en";
+    log.Error(`langResult.settings ${JSON.stringify(langResult.settings)}`);
+
+    const langSettigPath = await authService.getSettingPath(
+      foundUser.objectId,
+      "lang",
+      "current"
+    );
+    if (langResult.settings[langSettigPath] != undefined) {
+      currentUserLang = langResult.settings[langSettigPath];
+    } else {
+      let userInfoReq = {
+        userId: foundUser.objectId,
+        username: foundUser.username,
+        avatar: profileResult.avatar,
+        displayName: profileResult.fullName,
+        systemRole: foundUser.role,
+      };
+      await authService.createDefaultLangSetting(userInfoReq);
+    }
+
+    const tokenModel = {
+      oauthProvider: null,
+      providerName: "telar",
+      profile: {
+        name: foundUser.username,
+        id: foundUser.objectId,
+        login: foundUser.username,
+      },
+      organizationList: "Red Gold",
+      name: profileResult.email,
+      access_token: "ProviderAccessToken", // "token":  ProviderAccessToken
+      organizations: "Red Gold",
+      claim: {
+        displayName: profileResult.fullName,
+        socialName: profileResult.socialName,
+        email: profileResult.email,
+        avatar: profileResult.avatar,
+        banner: profileResult.banner,
+        tagLine: profileResult.tagLine,
+        userId: foundUser.objectId,
+        uid: foundUser.objectId,
+        role: foundUser.role,
+        createdDate: foundUser.created_date,
+      },
+    };
+
+    try {
+      const session = await generateTokens.createToken(tokenModel);
+      log.Error(`\nSession is created: ${session} \n`);
+      return res.status(HttpStatusCode.OK).send({ token: session });
+    } catch (error) {
+      log.Error(`Error creating session`);
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "auth.createToken",
+            "Internal server error creating token"
+          ).json()
+        );
+    }
+  } catch (error) {
+    log.Error(`User profile  ${error}`);
+    return res
+      .status(HttpStatusCode.BadRequest)
+      .send(
+        new utils.ErrorHandler(
+          "auth.getUserProfile",
+          "Can not find user profile!"
+        ).json()
+      );
+  }
+};
 exports.logout = (req, res) => {
   res.clearCookie("he");
   res.clearCookie("pa");
@@ -1131,4 +1498,12 @@ exports.getTokens = async (req, res) => {
   }
 
   return res.send(getToken);
+};
+
+// generateSocialName
+exports.generateSocialName = async function (name, uid) {
+  return (
+    name.toString().replace(" ", "").toLowerCase() +
+    uid.toString().split("-")[0]
+  );
 };

@@ -131,7 +131,7 @@
     "cookie_root_domain": ".localhost",
     "hmac_header_name": "X-Cloud-Signature",
     "gateway": "https://social.faas.telar.dev",
-    "internal_gateway": "http://gateway.openfaas:8080/function",
+    "internal_gateway": "http://localhost",
     "origin": "https://social.faas.telar.dev, https://social.telar.dev, https://auth.telar.dev",
     "websocket_server_url": "https://telarpress-websocket.herokuapp.com",
     "debug": true,
