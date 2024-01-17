@@ -15,7 +15,6 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-app.use("/auth", require("../auth/router/googleOauth"));
 
 app.use(authRouter);
 app.use(errorService);

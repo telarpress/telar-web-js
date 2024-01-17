@@ -97,12 +97,12 @@ authRouter.get("/auth/login/", handlers.loginPageHandler);
 authRouter.post("/auth/login/", handlers.loginTelarHandler);
 authRouter.post("/auth/login/telar", handlers.loginTelarHandler);
 
-// authRouter.get("/github", handlers.LoginGithubHandler)
-// authRouter.get("/google", handlers.LoginGoogleHandler)
-// authRouter.get("/oauth2/authorized", handlers.OAuth2Handler)
+authRouter.get("/auth/github", handlers.loginGithubHandler);
+authRouter.get("/auth/github/callback", handlers.loginGithubCallbackHandler);
+authRouter.get("/auth/gitsuccess", handlers.loginGithubSuccessHandler);
 
-authRouter.get("/auth/github/callback", handlers.gitCallback);
-authRouter.get("/auth/gitsuccess", handlers.gitSuccess);
+authRouter.get("/auth/google", handlers.loginGoogleHandler);
+authRouter.get("/auth/google/callback", handlers.loginGoogleCallbackHandler);
 
 authRouter.get("/auth/logout", handlers.logout);
 authRouter.get("/auth/getUsers", handlers.getUsers);
