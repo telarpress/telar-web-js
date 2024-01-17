@@ -6,6 +6,7 @@ const zxcvbn = require("zxcvbn");
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const Joi = require("joi");
+const passport = require("passport");
 var access_token = "";
 
 //Auth const
@@ -1412,8 +1413,15 @@ exports.changePasswordHandler = async (req, res) => {
   }
 };
 
+// Declare the github route
+exports.loginGithubHandler = async (req, res) => {
+  res.redirect(
+    `https://github.com/login/oauth/authorize?client_id=${appConfig.GITHUB_CLIENT_ID}`
+  );
+};
+
 // Declare the callback github route
-exports.gitCallback = async (req, res) => {
+exports.loginGithubCallbackHandler = async (req, res) => {
   // The req.query object has the query params that were sent to this route.
   const requestToken = req.query.code;
   const gitCallback = await axios({
@@ -1441,7 +1449,7 @@ exports.gitCallback = async (req, res) => {
 };
 
 // Github Authorization Successfully
-exports.gitSuccess = async (req, res) => {
+exports.loginGithubSuccessHandler = async (req, res) => {
   const gitSuccess = await axios({
     method: "get",
     url: "https://api.github.com/user",
@@ -1464,6 +1472,20 @@ exports.gitSuccess = async (req, res) => {
   var viewData = { userData: gitSuccess.data };
   res.render("success", viewData);
 };
+
+// Declare the google route
+exports.loginGoogleHandler = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+// Declare the callback google route
+(exports.loginGoogleCallbackHandler = passport.authenticate("google", {
+  failureRedirect: "/",
+})),
+  (req, res) => {
+    var viewData = { user: req.user._json };
+    res.render("google", viewData);
+  };
 
 // Show all UsersAuth
 exports.getUsers = async (req, res) => {
