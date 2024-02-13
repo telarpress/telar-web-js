@@ -16,8 +16,10 @@ exports.appConfig = {
   REDIS_PWD: process.env.REDIS_PWD,
   STORAGE_SECRET: process.env.STORAGE_SECRET,
   REDIS_ADDRESS: config.environment.redis_address,
- 
-  
+
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 };
 
 // decodeBase64 Decode base64 string
