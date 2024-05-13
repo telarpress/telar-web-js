@@ -1,4 +1,4 @@
-const Error = (content) => {
-  console.log(content);
+const Error = (content, ...rest) => {
+  console.log(content, ...rest);
 };
 module.exports = { Error };
