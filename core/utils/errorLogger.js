@@ -1,4 +1,7 @@
 const Error = (content, ...rest) => {
-  console.log(content, ...rest);
+  console.error("[ERROR] ", content, ...rest);
 };
-module.exports = { Error };
+const info = (content, ...rest) => {
+  console.log("[Info] ", content, ...rest);
+};
+module.exports = { Error, info };

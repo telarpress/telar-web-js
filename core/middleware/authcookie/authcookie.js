@@ -21,7 +21,7 @@ exports.authCookie = async (req, res, next) => {
     const jwtOptions = { algorithm: "ES256" };
     const decode = await jwt.verify(
       `${req.cookies.he}.${req.cookies.pa}.${req.cookies.si}`,
-      appConfig.PUBKEY,
+      appConfig.PublicKey,
       jwtOptions
     );
     res.locals.user = decode.claim;

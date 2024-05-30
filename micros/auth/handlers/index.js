@@ -1,13 +1,19 @@
 const { appConfig } = require("../config");
 const authService = require("../services/auth.service");
 const { sendEmail } = require("../utils/sendEmail");
-const axios = require("axios");
+const {
+  generateDigits,
+  hash,
+  compareHash,
+} = require("../../../core/utils/string.util");
+const axios = require("axios").default;
 const zxcvbn = require("zxcvbn");
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const Joi = require("joi");
 const passport = require("passport");
 var access_token = "";
+const crypto = require("crypto");
 
 //Auth const
 const {
@@ -19,6 +25,16 @@ const generateTokens = require("../utils/generateTokens");
 const log = require("../../../core/utils/errorLogger");
 const utils = require("../../../core/utils/error-handler");
 const { HttpStatusCode } = require("../../../core/utils/HttpStatusCode");
+const { getPrettyURLf } = require("../../../core/utils/url.util");
+const { validateToken } = require("../../../core/utils/token.util");
+const {
+  generateRandomNumber,
+  generateSocialName,
+  functionCall,
+  initUserSetup,
+  getURLSchemaHost,
+} = require("../utils/common");
+const { UserAuth } = require("../models/user");
 
 // SignupPageHandler creates a handler for logging in
 exports.signupPageHandler = async (req, res) => {
@@ -61,52 +77,53 @@ exports.signupTokenHandle = async (req, res) => {
     //       ).json()
     //     );
     // }
-    const passStrength = await zxcvbn(req.body.newPassword);
-    if (passStrength.guesses < 37) {
-      log.Error(
-        ` *** WARNING *** - User With Email: ${req.body.email} Password Strength is: ${passStrength.guesses} and ${passStrength.crack_times_display.online_no_throttling_10_per_second} crack time estimations`
-      );
+
+    try {
+      const passStrength = await zxcvbn(req.body.newPassword);
+
+      if (passStrength.guesses < 37) {
+        log.Error(
+          ` *** WARNING *** - User With Email: ${req.body.email} Password Strength is: ${passStrength.guesses} and ${passStrength.crack_times_display.online_no_throttling_10_per_second} crack time estimations`
+        );
+        return res
+          .status(HttpStatusCode.BadRequest)
+          .send(
+            new utils.ErrorHandler(
+              "auth.needStrongerPassword",
+              "Password is not strong enough!"
+            ).json()
+          );
+      }
+    } catch (error) {
+      console.error("[Error][signupTokenHandle] ", error);
       return res
-        .status(HttpStatusCode.BadRequest)
+        .status(HttpStatusCode.InternalServerError)
         .send(
           new utils.ErrorHandler(
-            "auth.needStrongerPassword",
-            "Password is not strong enough!"
+            "internal/password",
+            "Error happened in verifying password!"
           ).json()
         );
     }
 
     // Verify Captha
-    if (!appConfig.Node_ENV === "TEST") {
-      const resultRecaptchV3 = await authService.recaptchaV3(
-        req.body["g-recaptcha-response"]
+    const resultRecaptch = await authService.verifyRecaptchaV2(
+      req.body["g-recaptcha-response"],
+      appConfig.RECAPTCHA_SECRET_KEY
+    );
+
+    if (!resultRecaptch) {
+      log.Error(
+        `Can not verify recaptcha ${appConfig.RECAPTCHA_SITE_KEY} error: ${resultRecaptch}`
       );
-
-      if (!resultRecaptchV3) {
-        log.Error(
-          `Can not verify recaptcha ${appConfig.RECAPTCHA_SITE_KEY} error: ${resultRecaptchV3}`
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "internal/recaptcha",
+            "Error happened in verifying captcha!"
+          ).json()
         );
-        return res
-          .status(HttpStatusCode.InternalServerError)
-          .send(
-            new utils.ErrorHandler(
-              "internal/recaptcha",
-              "Error happened in verifying captcha!"
-            ).json()
-          );
-      }
-
-      if (!resultRecaptchV3.success) {
-        log.Error("Error happened in validating recaptcha!");
-        return res
-          .status(HttpStatusCode.InternalServerError)
-          .send(
-            new utils.ErrorHandler(
-              "internal/recaptchaNotValid",
-              "Recaptcha is not valid!"
-            ).json()
-          );
-      }
     }
 
     // Check user exist
@@ -137,72 +154,47 @@ exports.signupTokenHandle = async (req, res) => {
     // Create signup token
     const newUserId = uuidv4();
 
-    //TODO: PhoneVerify
-    // const token = "";
-    // var tokenErr = Error();
-    // if (req.body.VerifyType == "Email") {
-    // } else if (req.body.VerifyType == "Phone") {
-    // }
+    const ip = req.clientIp;
 
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const emailTemplateFile = "email_code_verify-css";
+    const code = generateDigits(6);
 
-    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
-    const hashPassword = await bcrypt.hash(req.body.newPassword, salt);
+    const tokenData = {
+      userId: newUserId,
+      emailBody: emailTemplateFile,
+      code: code,
+      username: req.body.email,
+      emailTo: req.body.email,
+      emailSubject: "Your verification code",
+      remoteIpAddress: ip,
+      fullName: req.body.fullName,
+      userPassword: req.body.newPassword,
+    };
 
-    let userData = await authService.createUser(
-      newUserId,
-      req.body.email,
-      hashPassword
-    );
+    try {
+      // authService.createEmailVerificationToken is a function that returns a token
+      console.log("createEmailVerificationToken ");
+      const result = await authService.createEmailVerificationToken(tokenData);
+      console.log("createEmailVerificationToken done! ");
 
-    if (!userData) {
-      log.Error("Error happened in creating User Information");
-      return res
-        .status(HttpStatusCode.InternalServerError)
-        .send(
-          new utils.ErrorHandler(
-            "auth.createUser",
-            "Error happened in creating User Information! - " + req.url
-          ).json()
-        );
-    }
+      if (req.body.responseType === "spa") {
+        return res.send({ token: result });
+      }
 
-    const postData = {};
-    postData.id = userData.objectId;
-    postData.fullName = req.body.fullName;
-    postData.email = userData.username;
-    postData.password = hashPassword;
-    postData.userName = userData.username;
+      const prettyURL = getPrettyURLf(appConfig.BASE_ROUTE);
+      const signupVerifyData = {
+        title: "Login - Telar Social",
+        orgName: appConfig.OrgName,
+        orgAvatar: appConfig.OrgAvatar,
+        appName: appConfig.AppName,
+        actionForm: `${prettyURL}/signup/verify`,
+        token: result,
+        message: "",
+      };
 
-    const callAPIWithHMAC = await authService.callAPIWithHMAC(
-      "POST",
-      req.url,
-      postData,
-      userData
-    );
-
-    if (!callAPIWithHMAC) {
-      log.Error(callAPIWithHMAC);
-      log.Error("Error happened in callAPIWithHMAC!");
-      return res
-        .status(HttpStatusCode.BadRequest)
-        .send(
-          new utils.ErrorHandler(
-            "auth/callAPIWithHMAC",
-            "Error happened in callAPIWithHMAC! - " + req.body.email
-          ).json()
-        );
-    }
-    let link = "";
-    const emailVerification = await authService.CreateEmailVerficationToken({
-      UserId: newUserId,
-      Username: req.body.email,
-      EmailTo: req.body.email,
-      RemoteIpAddress: ip,
-    });
-
-    if (!emailVerification) {
-      log.Error(`Error While Create Token: ${emailVerification}`);
+      return renderCodeVerify(req, res, signupVerifyData);
+    } catch (error) {
+      log.Error(`Error While Create Token: `, error);
       return res
         .status(HttpStatusCode.InternalServerError)
         .send(
@@ -213,36 +205,8 @@ exports.signupTokenHandle = async (req, res) => {
         );
     }
 
-    link = `${emailVerification.code}`;
-    const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
     // TODO: if Verfify By Link
     // link = `${appConfig.AUTH_WEB_URI}/user/verify/${emailVerification.code}`;
-
-    // Send Email
-    const sendVerificationEmail = await sendEmail(
-      req.body.fullName,
-      req.body.email,
-      link,
-      "email_code_verify-css",
-      "Your verification code ",
-      verification_Address
-    );
-    if (!sendVerificationEmail) {
-      log.Error("Error happened in sending Email!");
-      return res
-        .status(HttpStatusCode.InternalServerError)
-        .send(
-          new utils.ErrorHandler(
-            "internal/sendEmailAuth",
-            "Error happened in sending email! - " + req.body.email
-          ).json()
-        );
-    }
-
-    var viewData = {
-      Message: "An Email sent to your account please verify.",
-    };
-    return res.render("message", viewData);
   } catch (error) {
     log.Error("Error happened in create signup!");
     return res
@@ -272,54 +236,148 @@ exports.verifyGetSignupHandle = async (req, res) => {
 
 // Verify Send Signup Handle
 exports.verifySignupHandle = async (req, res) => {
-  const token = await authService.checkTokenExist(req.body.code);
-  if (!token) {
-    log.Error("verifySignupHandle: Error happened in check token exist");
+  try {
+    const remoteIpAddress = req.clientIp;
+
+    const code = req?.body?.code;
+    const token = req?.body?.verificaitonSecret;
+    console.log("START decoding", appConfig.PublicKey, remoteIpAddress);
+    const claim = await validateToken(appConfig.PublicKey, token);
+    const userRemoteIp = claim.remoteIpAddress;
+    const verifyType = claim.verifyType;
+    const verifyMode = claim.mode;
+    const verifyId = claim.verifyId;
+    const userId = claim.userId;
+    const fullName = claim.fullname;
+    const email = claim.email;
+    const phoneNumber = claim.phoneNumber;
+    const password = claim.password;
+    const verifyTarget = verifyType === "emv" ? email : phoneNumber;
+    console.log(
+      `userId: ${userId}, fullName: ${fullName}, email: ${email}, password: ${password}, userRemoteIp: ${userRemoteIp}, verifyType: ${verifyType}, verifyMode: ${verifyMode}, verifyId: ${verifyId}`
+    );
+
+    let emailVerified = false;
+    let phoneVerified = false;
+
+    if (verifyType === "emv") {
+      emailVerified = true;
+    } else {
+      phoneVerified = true;
+    }
+
+    if (remoteIpAddress !== userRemoteIp) {
+      log.Error("The request is from a different remote IP address!");
+      return res.status(400).json({
+        error: "invalidToken",
+        message: "Error happened in validating token!",
+      });
+    }
+
+    const verifyStatus = await authService.verifyUserByCode(
+      userId,
+      verifyId,
+      remoteIpAddress,
+      code,
+      verifyTarget
+    );
+    if (!verifyStatus) {
+      console.error("The code is wrong!");
+      return res
+        .status(400)
+        .json({ error: "wrongCode", message: "The code is wrong!" });
+    }
+
+    const createdDate = Date.now();
+    const hashPassword = await hash(password);
+
+    if (!hashPassword) {
+      const errorMessage = `Cannot hash the password!`;
+      console.error(errorMessage);
+      return res.status(500).json({
+        error: "internal",
+        message: "Error happened during verification!",
+      });
+    }
+
+    const newUserAuth = new UserAuth({
+      objectId: userId,
+      username: email,
+      password: hashPassword,
+      access_token: token,
+      emailVerified: emailVerified,
+      role: "user",
+      phoneVerified: phoneVerified,
+      createdDate: createdDate,
+      last_updated: createdDate,
+    });
+    try {
+      await newUserAuth.save();
+      const socialName = generateSocialName(fullName, userId);
+
+      const newUserProfile = {
+        objectId: userId,
+        fullName: fullName,
+        socialName: socialName,
+        createdDate: createdDate,
+        lastUpdated: createdDate,
+        email: email,
+        avatar: `https://util.telar.dev/api/avatars/${userId}`,
+        banner: `https://picsum.photos/id/${generateRandomNumber(
+          1,
+          1000
+        )}/900/300/?blur`,
+        permission: "Public",
+      };
+
+      try {
+        await saveUserProfile(newUserProfile);
+      } catch (error) {
+        console.error(`Save user profile ${error.message}`);
+        return res.status(500).json({
+          error: "canNotSaveUserProfile",
+          message: "Cannot save user profile!",
+        });
+      }
+
+      try {
+        await initUserSetup(
+          newUserAuth.objectId,
+          newUserAuth.username,
+          newUserProfile.avatar,
+          newUserProfile.fullName,
+          newUserAuth.role
+        );
+      } catch (error) {
+        return res.status(500).json({
+          error: "initUserSetupError",
+          message: `Cannot initialize user setup! error: ${error.message}`,
+        });
+      }
+
+      return res
+        .status(200)
+        .send("User authentication and profile setup successful");
+    } catch (error) {
+      console.error(
+        `Error occurred during user authentication and profile setup: ${error.message}`
+      );
+      return res.status(500).json({
+        error: "internal",
+        message: "Error occurred during user authentication and profile setup",
+      });
+    }
+  } catch (error) {
+    log.Error("Error happened in verifying user signup code!", error);
     return res
-      .status(HttpStatusCode.Unauthorized)
+      .status(HttpStatusCode.InternalServerError)
       .send(
         new utils.ErrorHandler(
-          "auth.tokenverifactionmissing",
-          "Token exist missing"
+          "internal/verifySignupHandle",
+          "Error happened in verifying user signup code"
         ).json()
       );
   }
-
-  const countExistToken = await authService.countExistToken(req.body.code);
-  if (countExistToken.counter > 0) {
-    log.Error("verifySignupHandle: Error happened in check count of use token");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "auth.tokenverifactionmissing",
-          "This token has already been used"
-        ).json()
-      );
-  }
-  const user = await authService.checkUserExistById(
-    token.objectId,
-    token.userId
-  );
-  if (!user) {
-    log.Error("verifySignupHandle: Error happened in check user exist");
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler(
-          "auth.userverifactionmissing",
-          "User exist missing"
-        ).json()
-      );
-  }
-
-  await authService.updateVerifyUser(user.objectId, true);
-  await authService.updateTokenCounter(user.objectId);
-
-  var viewData = {
-    Message: "account verified successfully",
-  };
-  res.render("message", viewData);
 };
 
 // verify link sent by email
@@ -401,7 +459,7 @@ exports.loginPageHandler = async (req, res) => {
 exports.loginTelarHandler = async (req, res) => {
   const { error } = logInBodyValidation(req.body);
   if (error) {
-    log.Error("loginHandler: missing validation");
+    log.Error("loginHandler: missing validation", error);
     return res
       .status(HttpStatusCode.BadRequest)
       .send(
@@ -411,6 +469,7 @@ exports.loginTelarHandler = async (req, res) => {
         ).json()
       );
   }
+  const { state } = req.body;
   const foundUser = await authService.findByUsername(req.body.username);
   if (!foundUser) {
     log.Error(`loginHandler: Invalid email or password`);
@@ -436,10 +495,7 @@ exports.loginTelarHandler = async (req, res) => {
       );
   }
 
-  const CompareHash = await authService.CompareHash(
-    req.body.password,
-    foundUser.password
-  );
+  const CompareHash = await compareHash(req.body.password, foundUser.password);
 
   if (!CompareHash) {
     log.Error(`loginHandler: Password doesn't match ${CompareHash}`);
@@ -455,15 +511,6 @@ exports.loginTelarHandler = async (req, res) => {
 
   try {
     const profileChannel = authService.getUserProfileByID(foundUser.objectId);
-    if (!profileChannel) {
-      log.Error(`loginHandler: Profile doesn't exist ${profileChannel}`);
-    }
-    let avatar;
-    let socialName;
-    await profileChannel.then((profile) => {
-      avatar = profile.avatar;
-      socialName = profile.socialName;
-    });
 
     const langChannel = authService.readLanguageSettingAsync(
       foundUser.objectId,
@@ -471,14 +518,15 @@ exports.loginTelarHandler = async (req, res) => {
         userId: foundUser.objectId,
         username: foundUser.username,
         systemRole: foundUser.role,
-        avatar: avatar,
-        displayName: socialName,
+        avatar: "",
+        displayName: "",
       }
     );
     const [profileResult, langResult] = await Promise.all([
       profileChannel,
       langChannel,
     ]);
+    console.log("profileResult ", JSON.stringify(profileResult));
     let currentUserLang = "en";
     log.Error(`langResult.settings ${JSON.stringify(langResult.settings)}`);
 
@@ -545,20 +593,30 @@ exports.loginTelarHandler = async (req, res) => {
 
     let webURL = appConfig.EXTERNAL_REDIRECT_DOMAIN;
 
+    // We don't expire token because it's complicating things
+    // Also Google recommend it. https://developers.google.com/actions/identity/oauth2-implicit-flow
+    const expiresIn = 0;
+
+    const sessionQuery = `access_token=${session}&state=${state}&expires_in=${expiresIn}`;
+
     const redirect = req.query.r;
-    log.Error(`SetCookie done, redirect to: ${redirect}`);
+    log.info("SetCookie done, redirect to: %s", redirect);
 
     // Redirect to original requested resource (if specified in r=)
-    if (req.query.r) {
-      log.Error(
+    if (redirect) {
+      log.info(
         `Found redirect value "r"=${redirect}, instructing client to redirect`
       );
+
       // Note: unable to redirect after setting Cookie, so landing on a redirect page instead.
-      webURL = redirect;
+      webURL = `${getURLSchemaHost(
+        redirect
+      )}/auth/session?${sessionQuery}&r=${redirect}`;
     }
 
-    return res.status(HttpStatusCode.OK).send({
+    return res.json({
       user: profileResult,
+      accessToken: session,
       redirect: webURL,
     });
   } catch (error) {
@@ -715,104 +773,11 @@ exports.generateRandomNumber = function (min, max) {
   return Math.floor(Math.random() * max) + min;
 };
 
-// initUserSetup
-async function initUserSetup(userId, email, avatar, displayName, role) {
-  // Create admin header for http request
-  let adminHeaders = {};
-  adminHeaders["uid"] = userId;
-  adminHeaders["email"] = email;
-  adminHeaders["avatar"] = avatar;
-  adminHeaders["displayName"] = displayName;
-  adminHeaders["role"] = role;
-
-  const circleURL = `/circles/following/${userId}`;
-  try {
-    await authService.functionCall("post", [], circleURL, adminHeaders);
-  } catch (error) {
-    log.Error("functionCall " + circleURL + error);
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(
-        new utils.ErrorHandler("auth.initUserSetup", "Missing functionCall")
-      );
-  }
-
-  // Create default setting for user
-  const settingModel = {
-    list: [
-      {
-        type: "notification",
-        list: [
-          {
-            name: "send_email_on_like",
-            value: "false",
-          },
-          {
-            name: "send_email_on_follow",
-            value: "false",
-          },
-          {
-            name: "send_email_on_comment_post",
-            value: "false",
-          },
-          {
-            name: "send_email_app_news",
-            value: "true",
-          },
-        ],
-      },
-      {
-        type: "lang",
-        list: [
-          {
-            name: "current",
-            value: "en",
-          },
-        ],
-      },
-    ],
-  };
-
-  // Send request for setting
-  const settingURL = "/setting/";
-  try {
-    await authService.functionCall(
-      "post",
-      settingModel,
-      settingURL,
-      adminHeaders
-    );
-  } catch (error) {
-    log.Error("functionCall " + settingURL + error);
-    return res
-      .status(HttpStatusCode.Unauthorized)
-      .send(new utils.ErrorHandler("auth.settingURL", "Missing functionCall"));
-  }
-
-  const privateKey = uuidv4();
-
-  const accessKey = uuidv4();
-
-  // Send request for action room
-  const actiomRoomBytes = {
-    ownerUserId: userId,
-    privateKey: privateKey,
-    accessKey: accessKey,
-  };
-
-  const actionRoomURL = "/actions/room";
-  await authService.functionCall(
-    "post",
-    actiomRoomBytes,
-    actionRoomURL,
-    adminHeaders
-  );
-}
 // saveUserProfile Save user profile
 async function saveUserProfile(newProfile) {
   const profileURL = "/profile/dto";
   try {
-    return await authService.functionCall("post", newProfile, profileURL);
+    return await functionCall("post", newProfile, profileURL);
   } catch (error) {
     log.Error("functionCall " + profileURL + error);
     return res
@@ -1529,3 +1494,19 @@ exports.generateSocialName = async function (name, uid) {
     uid.toString().split("-")[0]
   );
 };
+
+/**
+ * Returns signup verify page
+ **/
+function renderCodeVerify(req, res, data) {
+  return res.render("code_verification", {
+    Title: data.title,
+    OrgName: data.orgName,
+    OrgAvatar: data.orgAvatar,
+    AppName: data.appName,
+    ActionForm: data.actionForm,
+    SignupLink: "",
+    Secret: data.token,
+    Message: data.message,
+  });
+}

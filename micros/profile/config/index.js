@@ -9,7 +9,7 @@ exports.appConfig = {
   ACCESS_TPK: process.env.ACCESS_TOKEN_PRIVATE_KEY,
   HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
-  PUBKEY: decodeBase64(process.env.PUBKEY),
+  PublicKey: decodeBase64(process.env.PUBKEY),
 };
 
 // decodeBase64 Decode base64 string

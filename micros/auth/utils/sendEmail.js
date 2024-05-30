@@ -1,7 +1,8 @@
 const nodemailer = require("nodemailer");
 const { appConfig } = require("../config");
-const fs = require("node:fs");
-exports.sendEmail = function (
+const fs = require("fs").promises;
+
+exports.sendEmail = async function (
   userName,
   email,
   link,
@@ -9,57 +10,59 @@ exports.sendEmail = function (
   emailVerifactionSubject,
   additionalField
 ) {
-  return new Promise((resolve, reject) => {
-    const transporter = nodemailer.createTransport({
+  try {
+    const transportOptions = {
       host: appConfig.SMTP_EMAIL_HOST,
       port: appConfig.SMTP_EMAIL_PORT,
-      //secure: true,
-      auth: {
+    };
+
+    if (appConfig.SMTP_EMAIL_USER && appConfig.SMTP_EMAIL_PASSWORD) {
+      transportOptions.auth = {
         user: appConfig.SMTP_EMAIL_USER,
         pass: appConfig.SMTP_EMAIL_PASSWORD,
-      },
-    });
+      };
+    }
 
-    fs.readFile(
-      __dirname + "/../views/" + templateFile + ".html",
-      { encoding: "utf-8" },
-      function (err, html) {
-        if (err) {
-          reject(err);
-        } else {
-          var mapObj = {
-            "{{AppURL}}": appConfig.WEB_URL,
-            "{{AppName}}": appConfig.APP_NAME,
-            "{{OrgAvatar}}": appConfig.ORG_AVATAR,
-            "{{Name}}": userName,
-            "{{Code}}": link,
-            "{{Link}}": link,
-            "{{additionalField}}": additionalField,
-            "{{OrgName}}": appConfig.ORG_NAME,
-          };
-          html = html.replace(
-            /{{AppURL}}|{{AppName}}|{{OrgAvatar}}|{{Name}}|{{Code}}|{{Link}}|{{additionalField}}|{{OrgName}}/gi,
-            function (matched) {
-              return mapObj[matched];
-            }
-          );
+    const transporter = nodemailer.createTransport(transportOptions);
 
-          const mailOptions = {
-            from: appConfig.REF_EMAIL, // sender address
-            to: email, // list of receivers
-            subject: emailVerifactionSubject, // Subject line
-            text: link, // plain text body
-            html: html,
-          };
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              reject(new Error("Problem in mailOptions sendMail"));
-            }
-            resolve(info);
-            console.log("Email Sending Information: " + info);
-          });
-        }
-      }
+    const templatePath = __dirname + "/../views/" + templateFile + ".html";
+    console.log('fs.readFile(templatePath, { encoding: "');
+    let html = await fs.readFile(templatePath, { encoding: "utf-8" });
+    console.log('fs.readFile(templatePath, { encoding: "done');
+
+    const mapObj = {
+      "{{AppURL}}": appConfig.WEB_URL,
+      "{{AppName}}": appConfig.APP_NAME,
+      "{{OrgAvatar}}": appConfig.ORG_AVATAR,
+      "{{Name}}": userName,
+      "{{Code}}": link,
+      "{{Link}}": link,
+      "{{additionalField}}": additionalField,
+      "{{OrgName}}": appConfig.ORG_NAME,
+    };
+
+    console.log("html.replace(/}/g,");
+    html = html.replace(/{{\w+}}/g, (matched) => mapObj[matched]);
+    console.log("html.replace(+}}/gdone");
+
+    const mailOptions = {
+      from: appConfig.REF_EMAIL,
+      to: email,
+      subject: emailVerifactionSubject,
+      text: link,
+      html: html,
+    };
+
+    console.log(
+      "transporter.sendMail(mailOptions);",
+      JSON.stringify(mailOptions)
     );
-  });
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email Sending Information: " + info);
+
+    return info;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw new Error("Problem sending email");
+  }
 };

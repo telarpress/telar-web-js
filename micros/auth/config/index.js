@@ -5,6 +5,7 @@ const config = process.env.Node_ENV == "production" ? prod : dev;
 
 exports.appConfig = {
   // BASE_ROUTE: config.micros.auth.environment.base_route,
+  Origin: config.environment.origin,
   EXTERNAL_REDIRECT_DOMAIN:
     config.micros.auth.environment.external_redirect_domain,
   WEB_URL: config.micros.auth.environment.web_url,
@@ -25,7 +26,7 @@ exports.appConfig = {
   // WRITE_TIMEOUT: config.micros.auth.environment.write_timeout,
 
   APP_NAME: config.environment.app_name,
-  // BASE_ROUTE_DOMAIN:config.environment.base_route_domain,
+  BASE_ROUTE: config.micros.auth.environment.base_route,
   DB_TYPE: config.environment.db_type,
   HEADER_COOKIE_NAME: config.environment.header_cookie_name,
   ORG_AVATAR: config.environment.org_avatar,
@@ -64,6 +65,7 @@ exports.appConfig = {
   HMAC_KEY: process.env.HMAC_KEY,
   ADMIN_USERNAME: process.env.ADMIN_USERNAME,
   ADMIN_PASSWORD: process.env.ADMIN_USERNAME,
+  PublicKey: decodeBase64(process.env.PUBKEY),
 };
 // decodeBase64 Decode base64 string
 function decodeBase64(encodedStrings) {
