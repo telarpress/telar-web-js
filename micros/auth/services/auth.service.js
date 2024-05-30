@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const { appConfig } = require("../config");
 const axios = require("axios").default;
 const { UserAuth } = require("../models/user");
+const { v4: uuidv4 } = require("uuid");
 
 //Token const
 const UserToken = require("../models/UserToken");
@@ -9,6 +10,13 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const GateKeeper = require("../utils/hmac");
 const { validate: uuidValidate } = require("uuid");
+const { sendEmail } = require("../utils/sendEmail");
+const { generateJWTToken } = require("../../../core/utils/token.util");
+const { isTimeExpired } = require("../../../core/utils/time.util");
+const { functionCall } = require("../utils/common");
+
+const numberOfVerifyRequest = 3;
+const expireTimeOffset = 3600;
 
 exports.hashPassword = async function (plainTextPassword) {
   const salt = await bcrypt.genSalt(Number(appConfig.SALT));
@@ -28,6 +36,33 @@ exports.checkUserExistById = async function (objectId, userId) {
     objectId: objectId,
     username: userId,
   });
+};
+
+exports.verifyRecaptchaV2 = async function (recaptchaResponse, secretKey) {
+  console.log("verifyRecaptchaV2 ", secretKey, recaptchaResponse);
+  try {
+    const response = await axios.post(
+      "https://www.google.com/recaptcha/api/siteverify",
+      null,
+      {
+        params: {
+          secret: secretKey,
+          response: recaptchaResponse,
+        },
+      }
+    );
+
+    if (response.data.success) {
+      // reCAPTCHA verification successful
+      return true;
+    } else {
+      // reCAPTCHA verification failed
+      return false;
+    }
+  } catch (error) {
+    console.error("Error verifying reCAPTCHA:", error.message);
+    throw new Error("Failed to verify reCAPTCHA");
+  }
 };
 
 exports.recaptchaV3 = async function (response_key) {
@@ -61,19 +96,52 @@ exports.createUser = async function (reqUserId, reqEmail, hashPassword) {
   }).save();
 };
 
-exports.CreateEmailVerficationToken = async function (userVerification) {
-  if (!uuidValidate(userVerification.UserId)) {
+exports.createEmailVerificationToken = async function (input) {
+  const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
+
+  console.log("sendEmail");
+  await sendEmail(
+    input.fullName,
+    input.emailTo,
+    input.code,
+    input.emailBody,
+    input.emailSubject,
+    verification_Address
+  );
+
+  console.log("sendEmail done!");
+  if (!uuidValidate(input.userId)) {
     throw "Error happened in Create Email Verfication Token";
   }
-  return await new UserToken({
-    objectId: userVerification.UserId,
-    code: crypto.randomBytes(32).toString("hex").substring(0, 6),
-    userId: userVerification.Username,
-    target: userVerification.EmailTo,
-    targetType: "email",
-    remoteIpAddress: userVerification.RemoteIpAddress,
+  const verifyId = uuidv4();
+  const verifyType = "emv";
+  const newUserToken = new UserToken({
+    objectId: verifyId,
+    code: input.code,
+    userId: input.userId,
+    target: input.emailTo,
+    targetType: verifyType,
+    counter: 1,
+    remoteIpAddress: input.remoteIpAddress,
     isVerified: false,
-  }).save();
+  });
+  console.log("save the token");
+  await newUserToken.save();
+  console.log("save the token donw");
+
+  const metaToken = {
+    userId: input.userId,
+    verifyId: verifyId,
+    remoteIpAddress: input.remoteIpAddress,
+    mode: "Registeration",
+    verifyType: verifyType,
+    fullname: input.fullName,
+    email: input.emailTo,
+    password: input.userPassword,
+  };
+  const privateKey = appConfig.KEY;
+  console.log("generateJWTToken");
+  return generateJWTToken(privateKey, metaToken, 1);
 };
 
 exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
@@ -113,7 +181,7 @@ exports.getUserProfileByID = async function (reqUserId) {
     const model = {
       id: reqUserId,
     };
-    const foundProfile = await microCall("get", model, url, userHeaders);
+    const foundProfile = await functionCall("get", model, url, userHeaders);
 
     if (!foundProfile) {
       if (appConfig.Node_ENV === "development") {
@@ -133,12 +201,13 @@ exports.getUserProfileByID = async function (reqUserId) {
       if (foundProfile.response.status == 404)
         console.log("NotFoundHTTPStatusError: " + foundProfile);
 
-      console.log(`microCall ${profileURL} -  ${foundProfile.message}`);
-      return Error("getUserProfileByID/microCall");
+      console.log(`microCall ${url} -  ${foundProfile.message}`);
+      throw new Error("getUserProfileByID/microCall");
     }
     return foundProfile;
   } catch (error) {
-    return `Cannot send request to /setting/dto/ids - ${error}`;
+    console.error(error);
+    throw new Error(`Cannot send request to /setting/dto/ids - ${error}`);
   }
 };
 
@@ -156,65 +225,12 @@ async function getUsersLangSettings(objectId, userInfoInReq) {
       userIds: objectId,
       type: "lang",
     };
-    return await microCall(
-      "post",
-      model,
-      url,
-      await getHeadersFromUserInfoReq(userInfoInReq)
-    );
+    const headers = await getHeadersFromUserInfoReq(userInfoInReq);
+    return await functionCall("post", model, url, headers);
   } catch (error) {
     return `Cannot send request to /setting/dto/ids - ${error}`;
   }
 }
-exports.functionCall = async (method, data, url, headers) => {
-  return await microCall(method, data, url, headers);
-};
-// microCall send request to another function/microservice using cookie validation
-/**
- *
- * @param {'get' | 'GET'
-  | 'delete' | 'DELETE'
-  | 'head' | 'HEAD'
-  | 'options' | 'OPTIONS'
-  | 'post' | 'POST'
-  | 'put' | 'PUT'
-  | 'patch' | 'PATCH'
-  | 'purge' | 'PURGE'
-  | 'link' | 'LINK'
-  | 'unlink' | 'UNLINK'} method
- * @param {*} data
- * @param {string} url
- * @param {*} headers
- */
-const microCall = async (method, data, url, headers = {}) => {
-  try {
-    const digest = await GateKeeper.sign(
-      JSON.stringify(data),
-      process.env.HMAC_KEY
-    );
-    headers["Content-type"] = "application/json";
-    headers[appConfig.HMAC_NAME] = digest;
-
-    console.log(`\ndigest: ${digest}, header: ${appConfig.HMAC_NAME} \n`);
-    const result = await axios({
-      method: method,
-      data,
-      url: "http://localhost" + url, // appConfig.INTERNAL_GATEWAY
-      headers,
-    });
-
-    return result.data;
-  } catch (error) {
-    // handle axios error and throw correct error
-    // https://github.com/axios/axios#handling-errors
-    console.log(
-      `Error while sending admin check request!: callAPIWithHMAC ${url}-${error}`
-    );
-    return Error(
-      "Error while sending admin check request!: actionRoom/callAPIWithHMAC"
-    );
-  }
-};
 
 // getHeadersFromUserInfoReq
 async function getHeadersFromUserInfoReq(info) {
@@ -255,12 +271,8 @@ exports.createDefaultLangSetting = async function (userInfoInReq) {
 
   // Send request for setting
   const settingURL = "/setting";
-  const setting = microCall(
-    "post",
-    settingBytes,
-    settingURL,
-    await getHeadersFromUserInfoReq(userInfoInReq)
-  );
+  const headers = await getHeadersFromUserInfoReq(userInfoInReq);
+  const setting = functionCall("post", settingBytes, settingURL, headers);
 
   if (!setting) {
     return false;
@@ -428,4 +440,74 @@ exports.addCounterAndLastUpdate = async (objectId) => {
 
 exports.saveUser = async function (findUser) {
   return await UserAuth.insertMany(findUser);
+};
+
+exports.verifyUserByCode = async function (
+  userId,
+  verifyId,
+  remoteIpAddress,
+  code,
+  target
+) {
+  try {
+    const userVerification = await UserToken.findOne({ objectId: verifyId });
+
+    if (!userVerification) {
+      console.error("Invalid verifyId");
+      throw new Error("verifyUserByCode/invalidVerifyId");
+    }
+
+    if (userVerification.remoteIpAddress !== remoteIpAddress) {
+      throw new Error("verifyUserByCode/differentRemoteAddress");
+    }
+
+    const newCounter = userVerification.counter + 1;
+    userVerification.counter = newCounter;
+
+    if (newCounter > numberOfVerifyRequest) {
+      throw new Error("verifyUserByCode/exceedRequestsLimits");
+    }
+
+    if (userVerification.isVerified) {
+      throw new Error("verifyUserByCode/alreadyVerified");
+    }
+
+    if (userVerification.target !== target) {
+      throw new Error(
+        `verifyUserByCode/differentTarget ${userVerification.target} : ${target}`
+      );
+    }
+
+    console.log(`Code: ${userVerification.code} , User code: ${code}`);
+
+    const filter = { objectId: verifyId };
+    if (userVerification.code !== code) {
+      userVerification.last_updated = Date.now();
+
+      const updateData = {
+        last_updated: userVerification.last_updated,
+        counter: userVerification.counter,
+      };
+      await UserToken.updateOne(filter, updateData);
+
+      throw new Error("createCodeVerification/wrongPinCode");
+    }
+
+    if (isTimeExpired(userVerification.created_date, expireTimeOffset)) {
+      throw new Error("verifyUserByCode/codeExpired");
+    }
+
+    const updateData = {
+      last_updated: userVerification.last_updated,
+      counter: userVerification.counter,
+      isVerified: true,
+    };
+
+    await UserToken.updateOne(filter, updateData);
+
+    return true;
+  } catch (error) {
+    console.error(`Error in verifyUserByCode: ${error.message}`);
+    throw error;
+  }
 };

@@ -58,13 +58,13 @@ exports.createUserProfileIndex = async function (postIndexMap) {
 
 exports.getIdFromAccessToken = async function (token) {
   const jwtOptions = { algorithm: "ES256" };
-  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  const decode = await jwt.verify(token, appConfig.PublicKey, jwtOptions);
   return await decode.StandardClaims.id;
 };
 
 exports.checkAccessToken = async function (token) {
   const jwtOptions = { algorithm: "ES256" };
-  const decode = await jwt.verify(token, appConfig.PUBKEY, jwtOptions);
+  const decode = await jwt.verify(token, appConfig.PublicKey, jwtOptions);
   return await UserProfile.findOne({ objectId: decode.StandardClaims.id });
 };
 exports.getProfiles = function () {
@@ -86,16 +86,20 @@ exports.generateRandomNumber = function (min, max) {
 
 // CreateProfileHandle handle create a new profile
 exports.createDtoProfileHandle = async function (profile) {
+  console.log("createDtoProfileHandle ", JSON.stringify(profile));
   const newProfile = new UserProfile({
-    socialName: await this.generateSocialName(profile.fullName, profile.id),
-    objectId: profile.id,
+    socialName: await this.generateSocialName(
+      profile.fullName,
+      profile.objectId
+    ),
+    objectId: profile.objectId,
     fullName: profile.fullName,
     email: profile.email,
     // password: profile.password,
     //TODO: Create one ENV for select Account && primary name (email or username)
     // emailUser: profile.email,
 
-    avatar: "https://util.telar.dev/api/avatars/" + profile.id,
+    avatar: "https://util.telar.dev/api/avatars/" + profile.objectId,
     banner: `https://picsum.photos/id/${this.generateRandomNumber(
       1,
       1000

@@ -14,6 +14,8 @@ exports.logInBodyValidation = (body) => {
   const schema = Joi.object({
     username: Joi.string().email().required().label("Email"),
     password: Joi.string().required().label("Password"),
+    responseType: Joi.string().optional(),
+    state: Joi.string().optional(),
   });
   return schema.validate(body);
 };

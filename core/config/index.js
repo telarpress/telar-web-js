@@ -6,7 +6,9 @@ const config = process.env.Node_ENV == "production" ? prod : dev;
 exports.appConfig = {
   HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
-  PUBKEY: decodeBase64(process.env.PUBKEY),
+  PublicKey: decodeBase64(process.env.PUBKEY),
+  BaseRoute: config.environment.base_route_domain,
+  Origin: config.environment.origin,
 };
 
 // decodeBase64 Decode base64 string

@@ -22,12 +22,12 @@ notificationsRouter.post(
   handlers.checkNotifyEmailHandle
 );
 notificationsRouter.post(
-  "/notifications/",
+  "/notifications",
   hmacCookieHandlers(false),
   handlers.createNotificationHandle
 );
 notificationsRouter.put(
-  "/notifications/",
+  "/notifications",
   hmacCookieHandlers(false),
   handlers.updateNotificationHandle
 );
@@ -52,7 +52,7 @@ notificationsRouter.delete(
   handlers.deleteNotificationByUserIdHandle
 );
 notificationsRouter.get(
-  "/notifications/check",
+  "/notifications",
   hmacCookieHandlers(true),
   handlers.getNotificationsByUserIdHandle
 );
