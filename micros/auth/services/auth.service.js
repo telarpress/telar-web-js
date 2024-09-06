@@ -3,7 +3,11 @@ const { appConfig } = require("../config");
 const axios = require("axios").default;
 const { UserAuth } = require("../models/user");
 const { v4: uuidv4 } = require("uuid");
-
+const {
+  generateDigits,
+  hash,
+  compareHash,
+} = require("../../../core/utils/string.util");
 //Token const
 const UserToken = require("../models/UserToken");
 const jwt = require("jsonwebtoken");
@@ -117,14 +121,15 @@ exports.createEmailVerificationToken = async function (input) {
   const verifyType = "emv";
   const newUserToken = new UserToken({
     objectId: verifyId,
+    targetType: verifyType,
+    counter: 1,
     code: input.code,
     userId: input.userId,
     target: input.emailTo,
-    targetType: verifyType,
-    counter: 1,
     remoteIpAddress: input.remoteIpAddress,
     isVerified: false,
   });
+
   console.log("save the token");
   await newUserToken.save();
   console.log("save the token donw");
@@ -162,7 +167,7 @@ exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
   };
   axiosConfig.headers[appConfig.HMAC_NAME] = `${hashData.toString()}`;
   const getProfile = await axios.post(
-    "http://localhost/profile/dto/",
+    appConfig.INTERNAL_GATEWAY + "/profile/dto/",
     json,
     axiosConfig
   );
@@ -181,6 +186,7 @@ exports.getUserProfileByID = async function (reqUserId) {
     const model = {
       id: reqUserId,
     };
+
     const foundProfile = await functionCall("get", model, url, userHeaders);
 
     if (!foundProfile) {
@@ -283,8 +289,8 @@ exports.createDefaultLangSetting = async function (userInfoInReq) {
 exports.checkTokenExist = async function (reqCode) {
   return await UserToken.findOne({ code: reqCode });
 };
-exports.checkTokenExistByUserId = async function (robjectId, rcode) {
-  return await UserToken.findOne({ objectId: robjectId, code: rcode });
+exports.checkTokenExistByUserId = async function (username, rcode) {
+  return await UserToken.findOne({ username: username, code: rcode });
 };
 exports.countExistToken = async function (reqCode) {
   return await UserToken.findOne({ code: reqCode });
@@ -368,15 +374,24 @@ exports.changeUserPasswordByAccessToken = async function (
 exports.changeUserPasswordByUserId = async function (
   oldPassword,
   objectId,
-  reqPassword
+  newPassword
 ) {
   try {
-    const salt = await bcrypt.genSalt(Number(appConfig.SALT));
     let findUser = await UserAuth.findOne({ objectId });
-    if (!bcrypt.compareSync(oldPassword, findUser.password)) {
+    const CompareHash = await compareHash(oldPassword, findUser.password);
+
+    if (!CompareHash) {
       throw new Error("Passwords Not Match");
     }
-    const hashPassword = await bcrypt.hash(reqPassword, salt);
+    const hashPassword = await hash(newPassword);
+    if (!hashPassword) {
+      const errorMessage = `Cannot hash the password!`;
+      console.error(errorMessage);
+      return res.status(500).json({
+        error: "internal",
+        message: "Error happened during verification!",
+      });
+    }
     findUser.password = hashPassword;
     findUser.save();
   } catch (error) {
@@ -385,13 +400,19 @@ exports.changeUserPasswordByUserId = async function (
 };
 
 exports.changeUserPasswordByCode = async function (user, newPassword, code) {
-  const token = await UserToken.findOne({ objectId: user.objectId });
+  const token = await UserToken.findOne({ userId: user.objectId });
   if (token.code != code) {
     throw new Error();
   }
-
-  const salt = await bcrypt.genSalt(Number(appConfig.SALT));
-  const hashPassword = await bcrypt.hash(newPassword, salt);
+  const hashPassword = await hash(newPassword);
+  if (!hashPassword) {
+    const errorMessage = `Cannot hash the password!`;
+    console.error(errorMessage);
+    return res.status(500).json({
+      error: "internal",
+      message: "Error happened during verification!",
+    });
+  }
   user.password = hashPassword;
   user.save();
 };
@@ -406,10 +427,11 @@ exports.getTokenByUserId = async function (objectId) {
 
 exports.createToken = async function (objectId) {
   await UserToken.findOneAndUpdate(
-    { objectId: objectId },
+    { userId: objectId },
     { code: crypto.randomBytes(32).toString("hex").substring(0, 6) }
   );
-  return await UserToken.findOne({ objectId: objectId });
+
+  return await UserToken.findOne({ userId: objectId });
 };
 
 exports.checkCode = async function (objectId) {

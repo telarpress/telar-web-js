@@ -68,24 +68,31 @@ exports.findIdByAccessToken = async function (token) {
 };
 
 exports.getAllUserSetting = async function (userId) {
-  const userSetting = await UserSetting.find({ ownerUserId: userId });
-  let groupSettingsMap = [];
-  userSetting.forEach((setting) => {
-    let settingModel = {
-      objectId: setting.objectId,
-      name: setting.name,
-      value: setting.value,
-      isSystem: setting.isSystem,
-    };
-    let type = [setting.type];
-    groupSettingsMap = groupSettingsMap.concat(type, settingModel);
-  });
-  let groupSettingsModel = {
-    type: userSetting[0].type,
-    createdDate: userSetting[0].created_date,
-    ownerUserId: userSetting[0].ownerUserId,
-    list: groupSettingsMap,
-  };
+  try {
+    const userSettings = await UserSetting.find({
+      ownerUserId: userId,
+    }).exec();
 
-  return groupSettingsModel;
+    const mappedSettings = userSettings.reduce((acc, setting) => {
+      const { _id, name, value, type, isSystem } = setting;
+      const formattedSetting = {
+        objectId: _id.toString(),
+        name,
+        value,
+        isSystem,
+      };
+
+      if (!acc[type]) {
+        acc[type] = [];
+      }
+
+      acc[type].push(formattedSetting);
+      return acc;
+    }, {});
+
+    return mappedSettings;
+  } catch (error) {
+    console.error("Error fetching user settings:", error);
+    return {};
+  }
 };

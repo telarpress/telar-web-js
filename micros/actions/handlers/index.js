@@ -48,7 +48,7 @@ exports.createActionRoomHandle = async function (req, res) {
     const createActionRoom = await actionRoomService.saveActionRoom(
       newActionRoom
     );
-    return res.status(HttpStatusCode.OK).send(createActionRoom).json();
+    return res.status(HttpStatusCode.OK).send(createActionRoom);
   } catch (error) {
     log.Error("Save ActionRoom Error " + error);
     return res
@@ -152,7 +152,7 @@ exports.updateActionRoomHandle = async function (req, res) {
     const updatedActionRoomReult = await actionRoomService.updateActionRoomById(
       updatedActionRoom
     );
-    return res.status(HttpStatusCode.OK).send(updatedActionRoomReult).json();
+    return res.status(HttpStatusCode.OK).send(updatedActionRoomReult);
   } catch (error) {
     log.Error("Update ActionRoom Error " + error);
     return res
@@ -182,7 +182,7 @@ exports.setAccessKeyHandle = async function (req, res) {
   }
   try {
     const accessKey = await actionRoomService.setAccessKey(currentUserId);
-    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
+    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey });
   } catch (error) {
     log.Error("Set access key Error " + error);
     return res
@@ -268,7 +268,7 @@ exports.getAccessKeyHandle = async function (req, res) {
 
   try {
     const accessKey = await actionRoomService.getAccessKey(currentUserId);
-    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
+    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey });
   } catch (error) {
     log.Error("[actionRoomService.GetAccessKey] " + currentUserId + error);
     return res

@@ -153,6 +153,7 @@ exports.signupTokenHandle = async (req, res) => {
 
     // Create signup token
     const newUserId = uuidv4();
+    console.log(newUserId);
 
     const ip = req.clientIp;
 
@@ -170,7 +171,7 @@ exports.signupTokenHandle = async (req, res) => {
       fullName: req.body.fullName,
       userPassword: req.body.newPassword,
     };
-
+    console.log(tokenData);
     try {
       // authService.createEmailVerificationToken is a function that returns a token
       console.log("createEmailVerificationToken ");
@@ -522,6 +523,7 @@ exports.loginTelarHandler = async (req, res) => {
         displayName: "",
       }
     );
+
     const [profileResult, langResult] = await Promise.all([
       profileChannel,
       langChannel,
@@ -679,7 +681,7 @@ exports.adminSignupHandle = async (req, res) => {
 
     const newUserProfile = {
       socialName: await this.generateSocialName(fullName, userUUID),
-      id: userUUID,
+      objectId: userUUID,
       fullName: fullName,
       email: email,
       // password: profile.password,
@@ -751,18 +753,18 @@ exports.adminSignupHandle = async (req, res) => {
     const session = await generateTokens.createToken(tokenModel);
     log.Error(`\nSession is created: ${session} \n`);
 
-    return res.status(HttpStatusCode.OK).send({ token: session });
+    return res.status(HttpStatusCode.OK).send({ token: session }).json();
   } catch (error) {
     log.Error(
       "auth.adminSignupHandle",
-      "Cannot save user authentication! error: " + error
+      "Cannot login user authentication! error: " + error
     );
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
         new utils.ErrorHandler(
           "auth.adminSignupHandle",
-          "Cannot save user authentication!"
+          "Cannot login user authentication!"
         ).json()
       );
   }
@@ -833,16 +835,22 @@ exports.loginAdminHandler = async (req, res) => {
   }
 
   try {
-    const profileChannel = authService.getUserProfileByID(foundUser.objectId);
+    const profileChannel = await authService.getUserProfileByID(
+      foundUser.objectId
+    );
     if (!profileChannel) {
       log.Error(`loginHandler: Profile doesn't exist ${profileChannel}`);
     }
-    let avatar;
-    let socialName;
-    await profileChannel.then((profile) => {
-      avatar = profile.avatar;
-      socialName = profile.socialName;
-    });
+
+    // let avatar;
+    // let socialName;
+    // await profileChannel.then((profile) => {
+    //   avatar = profile.avatar;
+    //   socialName = profile.socialName;
+    // });
+
+    let avatar = profileChannel.avatar;
+    let socialName = profileChannel.socialName;
 
     const langChannel = authService.readLanguageSettingAsync(
       foundUser.objectId,
@@ -1074,7 +1082,7 @@ exports.forgetPasswordCodeHandler = async (req, res) => {
   if (!user) {
     log.Error(`ForgetPassHandle : User not exist by email : ${user}`);
     return res
-      .status(HttpStatusCode.Conflict)
+      .status(HttpStatusCode.BadRequest)
       .send(
         new utils.ErrorHandler(
           "forgetNotExist",
@@ -1082,6 +1090,7 @@ exports.forgetPasswordCodeHandler = async (req, res) => {
         ).json()
       );
   }
+
   const token = await authService.createToken(user.objectId);
 
   let sendMail = false;
@@ -1207,7 +1216,7 @@ exports.getForgetPasswordPage = async (req, res) => {
     OrgName: appConfig.ORG_NAME,
     Title: "Forget Password",
     OrgAvatar: appConfig.ORG_AVATAR,
-    ActionForm: "/auth/password/forgetbyemail",
+    ActionForm: "/auth/password/reset",
   };
   res.render("forget_password", viewData);
 };
@@ -1254,7 +1263,7 @@ exports.forgetPassword = async (req, res) => {
   // if (!token)
   const token = await authService.createToken(user.objectId);
   // const link = `${appConfig.AUTH_WEB_URI}/forget_password/${user.objectId}/${token.code}`;
-  const link = `${appConfig.AUTH_WEB_URI}/password/forgetbyemail/${user.objectId}/${token.code}`;
+  const link = `${appConfig.AUTH_WEB_URI}/password/reset/${user.objectId}/${token.code}`;
 
   let sendMail = false;
   sendMail = await sendEmail(
@@ -1309,8 +1318,8 @@ exports.getForgetPassword = async (req, res) => {
   }
 
   const token = await authService.checkTokenExistByUserId(
-    user.objectId,
-    req.params.token
+    user.username,
+    reqToken
   );
 
   if (!token) {
@@ -1353,6 +1362,7 @@ exports.changePasswordHandler = async (req, res) => {
           ).json()
         );
     }
+
     await authService.changeUserPasswordByUserId(
       req.body.oldPassword,
       uid,

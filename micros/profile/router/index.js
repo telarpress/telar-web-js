@@ -16,6 +16,12 @@ const hmacCookieHandlers = (hmacWithCookie) => (req, res, next) => {
 const handlers = require("../handlers");
 
 profileRouter.get(
+  "/profile",
+  hmacCookieHandlers(true),
+  handlers.queryUserProfileHandle
+);
+
+profileRouter.get(
   "/profile/dto/id/:userId",
   hmacCookieHandlers(),
   handlers.readDtoProfileHandle
@@ -28,11 +34,6 @@ profileRouter.get(
   "/profile/my",
   hmacCookieHandlers(true),
   handlers.readMyProfileHandle
-);
-profileRouter.get(
-  "/profile",
-  hmacCookieHandlers(true),
-  handlers.queryUserProfileHandle
 );
 profileRouter.get(
   "/profile/id/:userId",

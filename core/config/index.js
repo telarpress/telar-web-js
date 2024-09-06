@@ -1,5 +1,6 @@
 const prod = require("../../config/config.production.json");
 const dev = require("../../config/config.development.json");
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 const config = process.env.Node_ENV == "production" ? prod : dev;
 

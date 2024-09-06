@@ -6,6 +6,7 @@
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 /**
  * Retry function to execute an async function with retry logic

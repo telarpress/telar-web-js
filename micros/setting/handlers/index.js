@@ -58,10 +58,13 @@ exports.updateUserSettingHandle = async function (req, res) {
           ).json()
         );
     }
+
     let userSetting = [];
     let settingList = [];
+    let objId = "";
     settingList = list;
     settingList.forEach((setting) => {
+      objId = setting.objectId;
       let createdDateValue;
       if (creationDate == 0) {
         //let uuid = MUUID.v1();
@@ -82,7 +85,8 @@ exports.updateUserSettingHandle = async function (req, res) {
       };
       userSetting = userSetting.concat(newUserSetting);
     });
-    if (!userSetting.length > 0 || !setting.objectId || !setting.OwnerUserId) {
+
+    if (!userSetting.length > 0 || !objId || !ownerUserId) {
       log.Error("No setting added for update Error ");
       return res
         .status(HttpStatusCode.InternalServerError)
@@ -119,7 +123,8 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
   try {
     const userID = req.body.userId;
     currentUserId = res.locals.user.userId;
-
+    console.log(userID);
+    console.log(currentUserId);
     if (currentUserId == null || userID != currentUserId) {
       log.Error("[DeleteUserAllSettingHandle] Can not get current user");
       return res
@@ -144,7 +149,7 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
         ).json()
       );
   }
-  return res.status(HttpStatusCode.OK).send({ objectId: currentUserId }).json();
+  return res.status(HttpStatusCode.OK).send({ objectId: currentUserId });
 };
 exports.getAllUserSetting = async function (req, res) {
   try {
@@ -176,7 +181,7 @@ exports.getSettingByUserIds = async function (req, res) {
       userIds,
       type
     );
-
+    console.log(foundUsersSetting);
     let mappedSetting = {};
     await foundUsersSetting.forEach((setting) => {
       let key = `${setting.ownerUserId}:${setting.type}:${setting.name}`;
