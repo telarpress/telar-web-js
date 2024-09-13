@@ -3,6 +3,13 @@
  */
 
 const crypto = require("crypto");
+const cryptoJS = require("crypto-js");
+
+const sign2 = (data, sharedSecret) => {
+  return `sha256=${cryptoJS
+    .HmacSHA256(JSON.stringify(data), sharedSecret)
+    .toString(cryptoJS.enc.Hex)}`;
+};
 
 const sign = (data, sharedSecret) => {
   const hash = crypto
@@ -60,4 +67,4 @@ const validate = async (message, secret, hash) => {
   return verify(hashedMessage, secret, message);
 };
 
-module.exports = { validate, verify, sign };
+module.exports = { validate, verify, sign, sign2 };

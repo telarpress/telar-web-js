@@ -5,26 +5,21 @@ const axios = require("axios").default;
 const { appConfig } = require("../config");
 const { retry } = require("../../../core/utils/http.util");
 const { isValidJsonObject } = require("../../../core/utils/object.util");
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-function generateRandomNumber(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateSocialName(name, uid) {
-  const sanitizedName = name.replace(/\s+/g, ""); // Remove whitespace from name
-  const userIdPart = uid.split("-")[0]; // Get the first part of the UID
-  const socialName = sanitizedName.toLowerCase() + userIdPart;
-  return socialName;
-}
-
-// Utility function to get pretty URL
-function getPrettyURLf(url) {
-  // Implement this function based on your application config
-  return `${appConfig.BASE_ROUTE}${url}`;
-}
-
-// Allowed HTTP methods
-const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+// Define the headers to be included in HMAC calculation
+const HMAC_HEADERS = [
+  "content-type",
+  "x-hmac-headers",
+  "uid",
+  "email",
+  "socialname",
+  "avatar",
+  "displayname",
+  "banner",
+  "tagline",
+  "role",
+];
 
 // functionCall sends a request to another function/microservice using cookie validation
 async function functionCall(method, payload, url, header) {
@@ -34,34 +29,50 @@ async function functionCall(method, payload, url, header) {
     }
 
     // Validate HTTP method
+    const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
     if (!allowedMethods.includes(method.toUpperCase())) {
       throw new Error("Invalid HTTP method");
     }
 
     // Construct the full URL for the request
     const prettyURL = getPrettyURLf(url);
-    const requestURL = `${appConfig.INTERNAL_GATEWAY}${prettyURL}`;
-
-    // HMAC signing
-    const payloadSecret = appConfig.HMAC_KEY;
-
-    const digest = CryptoJS.HmacSHA256(
-      JSON.stringify(payload),
-      payloadSecret
-    ).toString(CryptoJS.enc.Hex);
-    const hmacHeader = `sha256=${digest}`;
+    const requestURL = `${appConfig.INTERNAL_GATEWAY}${url}`;
 
     // Set up headers
     const headers = {
-      "Content-type": "application/json",
-      [appConfig.HMAC_NAME]: hmacHeader,
+      "content-type": "application/json",
     };
-
     if (header) {
       Object.keys(header).forEach((key) => {
         headers[key] = header[key];
       });
     }
+
+    // Determine which headers are involved in the HMAC digest
+    const hmacHeaders = Object.keys(headers)
+      .filter((key) => HMAC_HEADERS.includes(key.toLowerCase()))
+      .join(",");
+
+    // Add X-HMAC-Headers to the headers
+    headers["X-HMAC-Headers"] = hmacHeaders + ",x-hmac-headers";
+    // HMAC signing
+    const payloadSecret = appConfig.HMAC_KEY;
+
+    // Create a string that includes both headers and payload
+    const headersString = Object.entries(headers)
+      .filter(([key]) => HMAC_HEADERS.includes(key.toLowerCase()))
+      .map(([key, value]) => `${key.toLocaleLowerCase()}:${value}`)
+      .join("\n");
+    const stringToSign = `${headersString}\n${
+      method.toLocaleLowerCase() === "get" ? "" : JSON.stringify(payload)
+    }`;
+    const digest = CryptoJS.HmacSHA256(stringToSign, payloadSecret).toString(
+      CryptoJS.enc.Hex
+    );
+    const hmacHeader = `sha256=${digest}`;
+
+    // Add HMAC header
+    headers[appConfig.HMAC_NAME] = hmacHeader;
 
     // Send the HTTP request with timeout and retry logic
     // Define the function to be retried
@@ -83,12 +94,32 @@ async function functionCall(method, payload, url, header) {
     };
 
     // Retry logic
-    return await retry(sendRequest, 3, 1000); // 3 retries, 1 second delay
+    return await retry(sendRequest, 1, 1000); // 3 retries, 1 second delay
   } catch (error) {
     console.error(`Error while sending request: ${error.message}`);
     throw new Error(`Error while sending request: ${error.message}`);
   }
 }
+
+function generateRandomNumber(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateSocialName(name, uid) {
+  const sanitizedName = name.replace(/\s+/g, ""); // Remove whitespace from name
+  const userIdPart = uid.split("-")[0]; // Get the first part of the UID
+  const socialName = sanitizedName.toLowerCase() + userIdPart;
+  return socialName;
+}
+
+// Utility function to get pretty URL
+function getPrettyURLf(url) {
+  // Implement this function based on your application config
+  return `${appConfig.BASE_ROUTE}${url}`;
+}
+
+// Allowed HTTP methods
+const allowedMethods = ["GET", "POST", "PUT", "DELETE", "PATCH"];
 
 async function initUserSetup(userId, email, avatar, displayName, role) {
   try {

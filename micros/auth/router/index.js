@@ -31,42 +31,25 @@ const authRoleMiddleware = () => (req, res, next) => {
 // @BasePath /
 const handlers = require("../handlers");
 
-// Swagger
-// authRouter.get("/swagger/*", swagger.HandlerDefault);
-
-//Admin
-authRouter.post(
-  "/auth/check/admin",
-  hmacCookieHandlers(false),
-  handlers.checkAdminHandler
-);
-authRouter.post("/auth/signup/admin", handlers.adminSignupHandle);
-authRouter.post("/auth/login/admin", handlers.loginAdminHandler);
-
-// Signup
-authRouter.get("/auth/signup", handlers.signupPageHandler);
+//return a token to verify user signup process
 authRouter.post("/auth/signup", handlers.signupTokenHandle);
 
-authRouter.get("/auth/signup/verify", handlers.verifyGetSignupHandle);
+// handler verify the signup token to register user
 authRouter.post("/auth/signup/verify", handlers.verifySignupHandle);
 
-// Password
-authRouter.get(
-  "/auth/password/reset",
-  hmacCookieHandlers(true),
-  handlers.getResetUserPassword
-);
+//change user password
 authRouter.post(
-  "/auth/password/reset",
+  "/auth/password/change",
   hmacCookieHandlers(true),
-  handlers.resetUserPassword
+  handlers.changePasswordHandler
 );
 
-// authRouter.get("/auth/password/reset/:verifyId", handlers.getResetUserPassword);
-// authRouter.post("/auth/password/reset/:verifyId", handlers.resetUserPassword);
-
+//return forget password page
 authRouter.get("/auth/password/forget", handlers.forgetPasswordPageHandler);
+
+//send forget password link to the user email
 authRouter.post("/auth/password/forget", handlers.forgetPasswordCodeHandler);
+
 authRouter.get(
   "/auth/password/forgetwithcode",
   handlers.forgetPasswordWithCodePageHandler
@@ -77,35 +60,98 @@ authRouter.post(
   handlers.forgetPasswordwithCodeFormHandler
 );
 
-authRouter.get("/auth/password/forgetbyemail", handlers.getForgetPasswordPage);
-authRouter.post("/auth/password/forgetbyemail", handlers.forgetPassword);
+//return reset password page
+// /password/reset/{verifyId}
+authRouter.post("/auth/password/reset/:verifyId", handlers.resetUserPassword);
+
+//get a password from user and set as a new password
+// /password/reset/{verifyId}
+authRouter.get("/auth/password/reset/:verifyId", handlers.getResetUserPassword);
+
+authRouter.get("/auth/password/reset", handlers.getForgetPasswordPage);
+authRouter.post("/auth/password/reset", handlers.forgetPassword);
 authRouter.get(
-  "/auth/password/forgetbyemail/:userId/:token",
+  "/auth/password/reset/:userId/:token",
   handlers.getForgetPassword
 );
 
+//signup the admin user and return access token
+authRouter.post("/auth/admin/signup", handlers.adminSignupHandle);
+//Logs in an admin user to the telar social platform
+authRouter.post("/auth/admin/login", handlers.loginAdminHandler);
+
+//handler to check whether admin user registered
 authRouter.post(
-  "/auth/password/change",
-  hmacCookieHandlers(true),
-  handlers.changePasswordHandler
+  "/auth/admin/check",
+  hmacCookieHandlers(false),
+  handlers.checkAdminHandler
 );
 
-// Login
-authRouter.get("/auth/", handlers.mainPageHandler);
+// Authenticates a user with Telar Social credentials for Single Page Applications
+authRouter.post("/auth/login/telar/spa", handlers.loginTelarHandler);
 authRouter.get("/auth/login/", handlers.loginPageHandler);
 // authRouter.post("/auth/", handlers.loginTelarHandler);
 authRouter.post("/auth/login/", handlers.loginTelarHandler);
-authRouter.post("/auth/login/telar", handlers.loginTelarHandler);
 
+//Redirects the user to GitHub for authentication
 authRouter.get("/auth/github", handlers.loginGithubHandler);
-authRouter.get("/auth/github/callback", handlers.loginGithubCallbackHandler);
-authRouter.get("/auth/gitsuccess", handlers.loginGithubSuccessHandler);
+authRouter.get("/auth/github/callback", handlers.loginGithubCallbackHandler); //////// Need SEt API
+authRouter.get("/auth/gitsuccess", handlers.loginGithubSuccessHandler); //////// Need SEt API
 
+//Redirects the user to Google for authentication
 authRouter.get("/auth/google", handlers.loginGoogleHandler);
-authRouter.get("/auth/google/callback", handlers.loginGoogleCallbackHandler);
+authRouter.get("/auth/google/callback", handlers.loginGoogleCallbackHandler); //////// Need SEt API
+
+//auth
+//GET
+//Login page
+//Renders the login page for Telar Social
+authRouter.get("/auth/", handlers.mainPageHandler); /////////////
+
+//Authenticates a user with Telar Social credentials
+authRouter.post("/auth/", handlers.loginTelarHandler); ///////////////////
+
+//default
+
+// return signup page in HTML
+// /admin/signup   //////// Need API
+
+authRouter.get("/auth/signup", handlers.signupPageHandler); //////// Need SEt API
+
+authRouter.get("/auth/signup/verify", handlers.verifyGetSignupHandle); //////// Need SEt API
+
+//Verifies the signup process by validating the token and saving user data
+
+// authRouter.get(
+//   "/auth/password/reset",
+//   hmacCookieHandlers(true),
+//   handlers.getResetUserPassword
+// );
+// authRouter.post(
+//   "/auth/password/reset",
+//   hmacCookieHandlers(true),
+//   handlers.resetUserPassword
+// );
+
+//admin
+
+//Auth
+
+// Swagger
+// authRouter.get("/swagger/*", swagger.HandlerDefault);
+
+// Login
+
+
 
 authRouter.get("/auth/logout", handlers.logout);
 authRouter.get("/auth/getUsers", handlers.getUsers);
 authRouter.get("/auth/getTokens", handlers.getTokens);
+
+//Admin
+
+// Signup
+
+// Password
 
 module.exports = authRouter;
