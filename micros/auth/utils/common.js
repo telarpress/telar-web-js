@@ -10,6 +10,7 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 // Define the headers to be included in HMAC calculation
 const HMAC_HEADERS = [
   "content-type",
+  "x-hmac-headers",
   "uid",
   "email",
   "socialname",
@@ -39,23 +40,32 @@ async function functionCall(method, payload, url, header) {
 
     // Set up headers
     const headers = {
-      "Content-type": "application/json",
+      "content-type": "application/json",
     };
     if (header) {
       Object.keys(header).forEach((key) => {
         headers[key] = header[key];
       });
     }
+
+    // Determine which headers are involved in the HMAC digest
+    const hmacHeaders = Object.keys(headers)
+      .filter((key) => HMAC_HEADERS.includes(key.toLowerCase()))
+      .join(",");
+
+    // Add X-HMAC-Headers to the headers
+    headers["X-HMAC-Headers"] = hmacHeaders + ",x-hmac-headers";
     // HMAC signing
     const payloadSecret = appConfig.HMAC_KEY;
 
     // Create a string that includes both headers and payload
     const headersString = Object.entries(headers)
       .filter(([key]) => HMAC_HEADERS.includes(key.toLowerCase()))
-      .map(([key, value]) => `${key}:${value}`)
+      .map(([key, value]) => `${key.toLocaleLowerCase()}:${value}`)
       .join("\n");
-    const stringToSign = `${headersString}\n${JSON.stringify(payload)}`;
-
+    const stringToSign = `${headersString}\n${
+      method.toLocaleLowerCase() === "get" ? "" : JSON.stringify(payload)
+    }`;
     const digest = CryptoJS.HmacSHA256(stringToSign, payloadSecret).toString(
       CryptoJS.enc.Hex
     );

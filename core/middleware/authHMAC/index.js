@@ -1,10 +1,12 @@
-const crypto = require("crypto");
 const { appConfig } = require("../../config");
 var CryptoJS = require("crypto-js");
+const { HttpStatusCode } = require("../../utils/HttpStatusCode");
+const utils = require("../../utils/error-handler");
 
 // Define the headers to be included in HMAC calculation
 const HMAC_HEADERS = [
   "content-type",
+  "x-hmac-headers",
   "uid",
   "email",
   "socialname",
@@ -22,16 +24,26 @@ exports.authHMAC = function (req, res, next) {
       return res.status(401).json({ error: "HMAC header is missing" });
     }
 
+    const hmacHeaders = req.get("x-hmac-headers");
+
+    if (!hmacHeaders) {
+      return res.status(401).json({ error: "Missing X-HMAC-Headers header" });
+    }
+
+    const headersToSign = hmacHeaders.split(",");
+
     const [algorithm, signature] = hmacHeader.split("=");
     if (algorithm !== "sha256" || !signature) {
       return res.status(401).json({ error: "Invalid HMAC header format" });
     }
 
     // Reconstruct the string to sign
-    const headersString = HMAC_HEADERS.map((header) => {
-      const value = req.get(header);
-      return value ? `${header}:${value}` : null;
-    })
+    const headersString = headersToSign
+      .filter((key) => HMAC_HEADERS.includes(key.toLowerCase()))
+      .map((header) => {
+        const value = req.get(header);
+        return value ? `${header.toLocaleLowerCase()}:${value}` : null;
+      })
       .filter(Boolean)
       .join("\n");
 
@@ -41,94 +53,62 @@ exports.authHMAC = function (req, res, next) {
     }
     const stringToSign = `${headersString}\n${body}`;
 
-    console.log("HMAC AFTER" + stringToSign + ";;;;;");
     // Calculate HMAC
-    const hmac = crypto.createHmac("sha256", appConfig.HMAC_KEY);
-    hmac.update(stringToSign);
-    const calculatedSignature = hmac.digest("hex");
-
-    console.log(calculatedSignature);
-    console.log(signature);
 
     const digest = CryptoJS.HmacSHA256(
-      headersString,
+      stringToSign,
       appConfig.HMAC_KEY
     ).toString(CryptoJS.enc.Hex);
 
-    const hmacHeader2 = `sha256=${digest}`;
-
-    console.log(hmacHeader2);
-    if (calculatedSignature !== signature) {
-      return res.status(401).json({ error: "HMAC signature is invalid" });
+    console.log(`[${req.url}]`, appConfig.HMAC_KEY, digest, signature);
+    if (digest !== signature) {
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .json(
+          new utils.ErrorHandler(
+            "authHMACMiddleware.HMACValidationTampered",
+            "HMAC has been tampered"
+          ).json()
+        );
     }
+
+    if (!req.get("uid")) {
+      console.warn(
+        "[HMAC] User ID is not provided. In this case user context will be set empty!"
+      );
+      res.locals.user = {};
+      return next();
+    }
+
+    const userUUID = req.get("uid");
+    let createdDate = Math.floor(Date.now() / 1000);
+    if (req.body.createdDate) {
+      createdDate = parseInt(req.body.createdDate, 10);
+    }
+
+    res.locals.user = {
+      uid: userUUID,
+      userId: userUUID,
+      username: req.get("email"),
+      socialName: req.get("socialName"),
+      displayName: req.get("displayName"),
+      avatar: req.get("avatar"),
+      banner: req.get("banner"),
+      tagLine: req.get("tagLine"),
+      createdDate,
+      systemRole: req.get("role"),
+    };
 
     next();
   } catch (error) {
-    console.error("Error in HMAC authentication:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error during HMAC authentication" });
+    console.error(`HMAC validation ${error}`);
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .json(
+        new utils.ErrorHandler(
+          "authHMACMiddleware.AuthenticationFailed",
+          "Authentication failed"
+        ).json()
+      );
   }
 };
-
-// module.exports = authHMAC;
-
-// exports.authHMAC = function (req, res, next) {
-//   try {
-//     const expectedHmac = `sha256=${CryptoJS.HmacSHA256(
-//       JSON.stringify(req.body),
-//       payloadSecret
-//     ).toString(CryptoJS.enc.Hex)}`;
-//     console.log("expectedHmac ", expectedHmac);
-//     if (auth !== expectedHmac) {
-//       log.Error("Cannot validate HMAC");
-//       return res
-//         .status(HttpStatusCode.Unauthorized)
-//         .json(
-//           new utils.ErrorHandler(
-//             "authHMACMiddleware.HMACValidationTampered",
-//             "HMAC has been tampered"
-//           ).json()
-//         );
-//     }
-
-//     if (!req.get("uid")) {
-//       log.Error(
-//         "[HMAC] User ID is not provided. In this case user context will be set empty!"
-//       );
-//       res.locals.user = {};
-//       return next();
-//     }
-
-//     const userUUID = req.get("uid");
-//     let createdDate = Math.floor(Date.now() / 1000);
-//     if (req.body.createdDate) {
-//       createdDate = parseInt(req.body.createdDate, 10);
-//     }
-
-//     res.locals.user = {
-//       uid: userUUID,
-//       userId: userUUID,
-//       username: req.get("email"),
-//       socialName: req.get("socialName"),
-//       displayName: req.get("displayName"),
-//       avatar: req.get("avatar"),
-//       banner: req.get("banner"),
-//       tagLine: req.get("tagLine"),
-//       createdDate,
-//       systemRole: req.get("role"),
-//     };
-
-//     next();
-//   } catch (error) {
-//     log.Error(`HMAC validation ${error}`);
-//     return res
-//       .status(HttpStatusCode.Unauthorized)
-//       .json(
-//         new utils.ErrorHandler(
-//           "authHMACMiddleware.AuthenticationFailed",
-//           "Authentication failed"
-//         ).json()
-//       );
-//   }
-// };
