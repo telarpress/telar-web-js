@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
+const { v4: uuidv4 } = require("uuid");
 
+const Schema = mongoose.Schema;
 const ProfilesSchema = new Schema(
   {
     avatar: { type: String },
@@ -14,7 +15,7 @@ const ProfilesSchema = new Schema(
     followerCount: { type: Number, default: 0 },
     fullName: { type: String },
     instagramId: { type: String },
-    objectId: { type: String },
+    objectId: { type: String, default: uuidv4() },
     last_updated: { type: Number, default: Math.floor(Date.now() / 1000) },
     permission: {
       type: String,

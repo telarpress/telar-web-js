@@ -24,10 +24,7 @@ exports.createSettingGroupHandle = async function (req, res) {
 
     await userSettingService.saveManyUserSetting(userSettingList);
 
-    return await res
-      .status(HttpStatusCode.OK)
-      .send({ objectId: res.locals.user.userId })
-      .json();
+    return res.status(HttpStatusCode.OK).end();
   } catch (error) {
     log.Error("Save UserSetting Error " + error);
     return res
@@ -123,8 +120,6 @@ exports.deleteUserAllSettingHandle = async function (req, res) {
   try {
     const userID = req.body.userId;
     currentUserId = res.locals.user.userId;
-    console.log(userID);
-    console.log(currentUserId);
     if (currentUserId == null || userID != currentUserId) {
       log.Error("[DeleteUserAllSettingHandle] Can not get current user");
       return res
@@ -181,7 +176,6 @@ exports.getSettingByUserIds = async function (req, res) {
       userIds,
       type
     );
-    console.log(foundUsersSetting);
     let mappedSetting = {};
     await foundUsersSetting.forEach((setting) => {
       let key = `${setting.ownerUserId}:${setting.type}:${setting.name}`;
@@ -196,6 +190,149 @@ exports.getSettingByUserIds = async function (req, res) {
         new utils.ErrorHandler(
           "userSettingService.findUserSetting",
           "Can not find users settings by ids!"
+        ).json()
+      );
+  }
+};
+
+exports.getUserSetting = async function (req, res) {
+  try {
+    const userSetingId = req.params.key;
+    if (!userSetingId) {
+      log.Error("userSeting Id is required!");
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "userSeting.userSetingIdRequired",
+            "userSeting id is required!"
+          ).json()
+        );
+    }
+
+    const userSetting = await userSettingService.getUserSettingById(
+      userSetingId
+    );
+
+    return res.status(HttpStatusCode.OK).send(userSetting).end();
+  } catch (error) {
+    log.Error(`Get UserSetting By Id Error ${error}`);
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "userSeting.getByIdUserSetting",
+          "Get UserSetting Error!"
+        ).json()
+      );
+  }
+};
+
+exports.deleteUserSetting = async function (req, res) {
+  try {
+    const userSetingId = req.params.key;
+    if (!userSetingId) {
+      log.Error("userSeting Id is required!");
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "userSeting.userSetingIdRequired",
+            "userSeting id is required!"
+          ).json()
+        );
+    }
+
+    const userSetting = await userSettingService.deleteUserSettingById(
+      userSetingId
+    );
+
+    return res.status(HttpStatusCode.OK).send(userSetting).end();
+  } catch (error) {
+    log.Error(`Delete UserSetting By Id Error ${error}`);
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "userSeting.deleteByIdUserSetting",
+          "delete UserSetting Error!"
+        ).json()
+      );
+  }
+};
+
+// GetUserSettingsHandle handle query on userSetting
+exports.getUserSettingsHandle = async function (req, res) {
+  try {
+    const currentUserId = res.locals.user.uid;
+    if (!currentUserId || currentUserId == null) {
+      log.Error("[GetUserSettingsHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "userSetting.invalidCurrentUser",
+            "Can not get current user"
+          ).json()
+        );
+    }
+
+    const userSettingList = userSettingService.getUserSettings(
+      currentUserId,
+      req.body.page,
+      req.body.search,
+      req.body.type
+    );
+    return res.send(userSettingList);
+  } catch (error) {
+    log.Error(
+      `[GetUserSettingsHandle] Error happened while reading userSetting ${error}`
+    );
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "userSetting.getUserSettings",
+          "Error happened while reading userSetting!"
+        ).json()
+      );
+  }
+};
+
+// CreateUserSettingsHandle handle query on userSetting
+exports.createUserSettingsHandle = async function (req, res) {
+  try {
+    const currentUserId = res.locals.user.uid;
+    if (!currentUserId || currentUserId == null) {
+      log.Error("[CreateUserSettingsHandle] Can not get current user");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler(
+            "userSetting.invalidCurrentUser",
+            "Can not get current user"
+          ).json()
+        );
+    }
+
+    const userSettingList = await userSettingService.createUserSettings(
+      currentUserId,
+      req.body.name,
+      req.body.type,
+      req.body.value
+    );
+
+    return res.send(userSettingList).end();
+  } catch (error) {
+    log.Error(
+      `[CreateUserSettingsHandle] Error happened while reading userSetting ${error}`
+    );
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "userSetting.createUserSettings",
+          "Error happened while reading userSetting!"
         ).json()
       );
   }

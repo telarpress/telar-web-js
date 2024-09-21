@@ -416,7 +416,6 @@ exports.getProfileByIds = async function (req, res) {
 // DispatchProfilesHandle a function invocation to read authed user profile
 exports.dispatchProfilesHandle = async function (req, res) {
   try {
-    console.log(req.body.userIds);
     const foundUsers = await profileService.findProfileByUserIds(
       req.body.userIds
     );
@@ -470,8 +469,8 @@ exports.dispatchProfilesHandle = async function (req, res) {
       displayName: currentUser.socialName,
       systemRole: currentUser.permission[0],
     };
-    console.log(activeRoomAction);
-    console.log(userInfoReq);
+    log.info(activeRoomAction);
+    log.info(userInfoReq);
     const resData = await dispatchAction(activeRoomAction, userInfoReq);
 
     return res.status(HttpStatusCode.OK).send(resData);
@@ -506,10 +505,8 @@ async function dispatchAction(action, userInfoInReq) {
       timeout: 1000,
     };
     const HMACDATA = hmac.sign2(actionBytes, appConfig.HMAC_KEY);
-    console.log(HMACDATA);
     config.headers[appConfig.HMAC_NAME] = HMACDATA;
     config.headers["ORIGIN"] = appConfig.GATEWAY;
-    console.log("https://api.solar.local" + actionURL);
     const response = await axios.post(
       "https://api.solar.local" + actionURL,
       actionBytes,
@@ -548,7 +545,6 @@ exports.initProfileIndexHandle = async function (req, res) {
 exports.updateProfile = async function (req, res) {
   try {
     const {
-      // objectId,
       fullName,
       socialName,
       avatar,
@@ -582,19 +578,6 @@ exports.updateProfile = async function (req, res) {
 
     const profile = await profileService.getProfileById(res.locals.user.uid);
 
-    // if (!(profile.objectId === objectId)) {
-    //   log.Error("updateProfile: Update Profile objectId Problem");
-    //   return res
-    //     .status(HttpStatusCode.BadRequest)
-    //     .send(
-    //       new utils.ErrorHandler(
-    //         "profile.missingUpdateProfile",
-    //         "Missing Update Profile"
-    //       ).json()
-    //     );
-    // }
-
-    console.log(res.locals.user.uid);
     profile.objectId = res.locals.user.uid;
     profile.fullName = fullName;
     profile.socialName = socialName;

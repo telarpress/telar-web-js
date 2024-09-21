@@ -18,6 +18,8 @@ exports.appConfig = {
   SMTP_EMAIL_USER: process.env.EMAIL_USER,
   SMTP_EMAIL_PASSWORD: process.env.EMAIL_PASS,
   REF_EMAIL: config.environment.ref_email,
+  INTERNAL_GATEWAY: config.environment.internal_gateway,
+  BASE_ROUTE: config.micros.notification.environment.base_route,
 };
 
 // decodeBase64 Decode base64 string

@@ -38,7 +38,7 @@ exports.microCall = async (method, data, url, headers = {}) => {
     const result = await axios({
       method: method,
       data,
-      url: "http://localhost" + url,
+      url: url,
       headers,
     });
     return result.data;

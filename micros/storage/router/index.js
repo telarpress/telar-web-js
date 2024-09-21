@@ -22,8 +22,6 @@ storageRouter.post(
   hmacCookieHandlers(true),
   upload.single("file"),
   handlers.uploadeHandle
-  // handlers.check
-  // handlers.uploadeHandle
 );
 storageRouter.get(
   "/storage/:uid/:dir/:name",

@@ -20,18 +20,18 @@ const authRoleMiddleware = () => (req, res, next) => {
 const handlers = require("../handlers");
 // Router
 adminRouter.post(
-  "/admin/actions/setup",
+  "/admin/setup",
   hmacCookieHandlers(true),
   authRoleMiddleware(),
   handlers.setupHandler
 );
 adminRouter.get(
-  "/admin/actions/setup",
+  "/admin/setup",
   hmacCookieHandlers(true),
   authRoleMiddleware(),
   handlers.setupPageHandler
 );
-adminRouter.get("/admin/actions/login", handlers.loginPageHandler);
-adminRouter.post("/admin/actions/login", handlers.loginAdminHandler);
+adminRouter.get("/admin/login", handlers.loginPageHandler);
+adminRouter.post("/admin/login", handlers.loginAdminHandler);
 
 module.exports = adminRouter;

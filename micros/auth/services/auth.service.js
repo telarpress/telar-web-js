@@ -18,6 +18,7 @@ const { sendEmail } = require("../utils/sendEmail");
 const { generateJWTToken } = require("../../../core/utils/token.util");
 const { isTimeExpired } = require("../../../core/utils/time.util");
 const { functionCall } = require("../utils/common");
+const log = require("../../../core/utils/errorLogger");
 
 const numberOfVerifyRequest = 3;
 const expireTimeOffset = 3600;
@@ -43,7 +44,6 @@ exports.checkUserExistById = async function (objectId, userId) {
 };
 
 exports.verifyRecaptchaV2 = async function (recaptchaResponse, secretKey) {
-  console.log("verifyRecaptchaV2 ", secretKey, recaptchaResponse);
   try {
     const response = await axios.post(
       "https://www.google.com/recaptcha/api/siteverify",
@@ -64,7 +64,7 @@ exports.verifyRecaptchaV2 = async function (recaptchaResponse, secretKey) {
       return false;
     }
   } catch (error) {
-    console.error("Error verifying reCAPTCHA:", error.message);
+    log.Error("Error verifying reCAPTCHA:", error.message);
     throw new Error("Failed to verify reCAPTCHA");
   }
 };
@@ -103,7 +103,6 @@ exports.createUser = async function (reqUserId, reqEmail, hashPassword) {
 exports.createEmailVerificationToken = async function (input) {
   const verification_Address = `${appConfig.WEB_URL}/auth/signup/verify`;
 
-  console.log("sendEmail");
   await sendEmail(
     input.fullName,
     input.emailTo,
@@ -113,7 +112,6 @@ exports.createEmailVerificationToken = async function (input) {
     verification_Address
   );
 
-  console.log("sendEmail done!");
   if (!uuidValidate(input.userId)) {
     throw "Error happened in Create Email Verfication Token";
   }
@@ -130,9 +128,7 @@ exports.createEmailVerificationToken = async function (input) {
     isVerified: false,
   });
 
-  console.log("save the token");
   await newUserToken.save();
-  console.log("save the token donw");
 
   const metaToken = {
     userId: input.userId,
@@ -145,14 +141,13 @@ exports.createEmailVerificationToken = async function (input) {
     password: input.userPassword,
   };
   const privateKey = appConfig.KEY;
-  console.log("generateJWTToken");
   return generateJWTToken(privateKey, metaToken, 1);
 };
 
 exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
   const hashData = GateKeeper.sign(JSON.stringify(json), appConfig.HMAC_KEY);
 
-  console.log(
+  log.info(
     "[INFO][HTTP CALL] callAPIWithHMAC: ",
     "Method: " + method,
     "URL: " + url,
@@ -173,7 +168,7 @@ exports.callAPIWithHMAC = async (method, url, json, userInfo) => {
   );
 
   if (!getProfile) {
-    console.log(`callAPIWithHMAC ${getProfile}`);
+    log.Error(`callAPIWithHMAC ${getProfile}`);
     return Error("auth/callAPIWithHMAC");
   }
   return true;
@@ -193,26 +188,26 @@ exports.getUserProfileByID = async function (reqUserId) {
       if (appConfig.Node_ENV === "development") {
         if (foundProfile.response) {
           // The client was given an error response (5xx, 4xx)
-          console.log(foundProfile.response.data);
-          console.log(foundProfile.response.status);
-          console.log(foundProfile.response.headers);
+          log.info(foundProfile.response.data);
+          log.info(foundProfile.response.status);
+          log.info(foundProfile.response.headers);
         } else if (foundProfile.request) {
           // The client never received a response, and the request was never left
-          console.log(foundProfile.request);
+          log.info(foundProfile.request);
         } else {
           // Anything else
-          console.log("Error", foundProfile.message);
+          log.Error("Error", foundProfile.message);
         }
       }
       if (foundProfile.response.status == 404)
-        console.log("NotFoundHTTPStatusError: " + foundProfile);
+        log.Error("NotFoundHTTPStatusError: " + foundProfile);
 
-      console.log(`microCall ${url} -  ${foundProfile.message}`);
+      log.info(`microCall ${url} -  ${foundProfile.message}`);
       throw new Error("getUserProfileByID/microCall");
     }
     return foundProfile;
   } catch (error) {
-    console.error(error);
+    log.Error(error);
     throw new Error(`Cannot send request to /setting/dto/ids - ${error}`);
   }
 };
@@ -289,8 +284,8 @@ exports.createDefaultLangSetting = async function (userInfoInReq) {
 exports.checkTokenExist = async function (reqCode) {
   return await UserToken.findOne({ code: reqCode });
 };
-exports.checkTokenExistByUserId = async function (username, rcode) {
-  return await UserToken.findOne({ username: username, code: rcode });
+exports.checkTokenExistByUserId = async function (userId, code) {
+  return await UserToken.findOne({ userId, code });
 };
 exports.countExistToken = async function (reqCode) {
   return await UserToken.findOne({ code: reqCode });
@@ -301,9 +296,9 @@ exports.updateVerifyUser = async function (reqUserId, verified) {
     { objectId: reqUserId },
     { isVerified: verified }
   );
-  if (!findUserToken) console.log("updateOne Error: " + findUserToken);
+  if (!findUserToken) log.Error("updateOne Error: " + findUserToken);
 
-  console.log("updateOne Updated - " + findUserToken);
+  log.info("updateOne Updated - " + findUserToken);
 
   //TODO: PhoneVerfy
   return await UserAuth.updateOne(
@@ -314,7 +309,7 @@ exports.updateVerifyUser = async function (reqUserId, verified) {
 
 exports.updateTokenCounter = async function (tokenId) {
   const findUserToken = await UserToken.findOne({ objectId: tokenId });
-  if (findUserToken) console.log("updateTokenCounter Error: " + findUserToken);
+  if (!findUserToken) log.Error("updateTokenCounter Error: " + findUserToken);
   let count = findUserToken.counter + 1;
   return UserToken.updateOne({ objectId: tokenId }, { counter: count });
 };
@@ -386,7 +381,7 @@ exports.changeUserPasswordByUserId = async function (
     const hashPassword = await hash(newPassword);
     if (!hashPassword) {
       const errorMessage = `Cannot hash the password!`;
-      console.error(errorMessage);
+      log.Error(errorMessage);
       return res.status(500).json({
         error: "internal",
         message: "Error happened during verification!",
@@ -400,21 +395,27 @@ exports.changeUserPasswordByUserId = async function (
 };
 
 exports.changeUserPasswordByCode = async function (user, newPassword, code) {
-  const token = await UserToken.findOne({ userId: user.objectId });
-  if (token.code != code) {
-    throw new Error();
+  try {
+    const token = await UserToken.findOne({ userId: user });
+
+    if (token.code != code) {
+      throw new Error();
+    }
+
+    const hashPassword = await hash(newPassword);
+
+    if (!hashPassword) {
+      const errorMessage = `Cannot hash the password!`;
+      log.Error(errorMessage);
+      return res.status(500).json({
+        error: "internal",
+        message: "Error happened during verification!",
+      });
+    }
+    await UserAuth.updateOne({ objectId: user }, { password: hashPassword });
+  } catch (error) {
+    return error;
   }
-  const hashPassword = await hash(newPassword);
-  if (!hashPassword) {
-    const errorMessage = `Cannot hash the password!`;
-    console.error(errorMessage);
-    return res.status(500).json({
-      error: "internal",
-      message: "Error happened during verification!",
-    });
-  }
-  user.password = hashPassword;
-  user.save();
 };
 
 exports.emptyTokenCode = async function (objectId) {
@@ -475,7 +476,7 @@ exports.verifyUserByCode = async function (
     const userVerification = await UserToken.findOne({ objectId: verifyId });
 
     if (!userVerification) {
-      console.error("Invalid verifyId");
+      log.Error("Invalid verifyId");
       throw new Error("verifyUserByCode/invalidVerifyId");
     }
 
@@ -500,7 +501,7 @@ exports.verifyUserByCode = async function (
       );
     }
 
-    console.log(`Code: ${userVerification.code} , User code: ${code}`);
+    log.info(`Code: ${userVerification.code} , User code: ${code}`);
 
     const filter = { objectId: verifyId };
     if (userVerification.code !== code) {
@@ -529,7 +530,7 @@ exports.verifyUserByCode = async function (
 
     return true;
   } catch (error) {
-    console.error(`Error in verifyUserByCode: ${error.message}`);
+    log.Error(`Error in verifyUserByCode: ${error.message}`);
     throw error;
   }
 };

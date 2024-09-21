@@ -96,3 +96,54 @@ exports.getAllUserSetting = async function (userId) {
     return {};
   }
 };
+
+exports.getUserSettingById = async function (userId) {
+  return await UserSetting.find({
+    ownerUserId: userId,
+  });
+};
+
+exports.deleteUserSettingById = async function (userId) {
+  return await UserSetting.deleteMany({
+    ownerUserId: userId,
+  });
+};
+
+exports.getUserSettings = async function (ownerUserId, page, search, type) {
+  // let sortMap = {};
+  // sortMap["sortBy"] = -1;
+  // let skip = numberOfItems * (page - 1);
+
+  let filter = {
+    ownerUserId: ownerUserId,
+    name: search,
+    type: type,
+  };
+  try {
+    return await findUserSettingsList(filter);
+  } catch (error) {
+    return error;
+  }
+};
+// FindUserSettingsList get all settings by filter
+async function findUserSettingsList(filter) {
+  try {
+    return await UserSetting.find(filter);
+  } catch (error) {
+    return error;
+  }
+}
+
+exports.createUserSettings = async function (ownerUserId, name, type, value) {
+  let filter = {
+    ownerUserId: ownerUserId,
+    name: name,
+    value: value,
+    type: type,
+  };
+  try {
+    return await UserSetting.insertMany(filter);
+  } catch (error) {
+    return error;
+  }
+};

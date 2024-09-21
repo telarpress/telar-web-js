@@ -7,7 +7,7 @@ const { appConfig } = require("../config");
 // SetupPageHandler creates a handler for logging in
 exports.setupPageHandler = async function (req, res) {
   var viewData = {
-    SetupAction: "/admin/actions/setup",
+    SetupAction: "/admin/setup",
   };
   return res.render("start", viewData);
 };
@@ -154,8 +154,8 @@ exports.loginPageHandler = async function (req, res) {
 
 // checkSetupEnabled check whether setup is done already
 async function checkSetupEnabled() {
-  const url = "/auth/check/admin";
-  const adminCheck = await adminService.microCall("post", "[]", url);
+  const url = "https://api.solar.local/auth/admin/check";
+  const adminCheck = await adminService.microCall("post", "{}", url);
   return adminCheck;
 }
 

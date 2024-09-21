@@ -1,5 +1,5 @@
-const prod = require("../../../config/config.production.json");
 const dev = require("../../../config/config.development.json");
+const prod = require("../../../config/config.production.json");
 
 const config = process.env.Node_ENV == "production" ? prod : dev;
 

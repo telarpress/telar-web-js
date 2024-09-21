@@ -44,36 +44,39 @@ authRouter.post(
   handlers.changePasswordHandler
 );
 
-//return forget password page
-authRouter.get("/auth/password/forget", handlers.forgetPasswordPageHandler);
-
-//send forget password link to the user email
-authRouter.post("/auth/password/forget", handlers.forgetPasswordCodeHandler);
-
+authRouter.get("/auth/password/forget", handlers.getForgetPasswordPage);
+authRouter.post("/auth/password/forget", handlers.forgetPassword);
 authRouter.get(
-  "/auth/password/forgetwithcode",
-  handlers.forgetPasswordWithCodePageHandler
+  "/auth/password/reset/:userId/:token",
+  handlers.getResetUserPassword
+);
+authRouter.post(
+  "/auth/password/reset/:userId/:token",
+  handlers.getResetPassword
 );
 
-authRouter.post(
-  "/auth/password/forgetwithcode",
-  handlers.forgetPasswordwithCodeFormHandler
-);
+// //return forget password page
+// authRouter.get("/auth/password/forget", handlers.forgetPasswordPageHandler);
+
+// //send forget password link to the user email
+// authRouter.post("/auth/password/forget", handlers.forgetPasswordCodeHandler);
+
+// authRouter.get(
+//   "/auth/password/forgetwithcode",
+//   handlers.forgetPasswordWithCodePageHandler
+// );
+
+// authRouter.post(
+//   "/auth/password/forgetwithcode",
+//   handlers.forgetPasswordwithCodeFormHandler
+// );
 
 //return reset password page
 // /password/reset/{verifyId}
-authRouter.post("/auth/password/reset/:verifyId", handlers.resetUserPassword);
+// /password/reset/{verifyId}
 
 //get a password from user and set as a new password
-// /password/reset/{verifyId}
-authRouter.get("/auth/password/reset/:verifyId", handlers.getResetUserPassword);
-
-authRouter.get("/auth/password/reset", handlers.getForgetPasswordPage);
-authRouter.post("/auth/password/reset", handlers.forgetPassword);
-authRouter.get(
-  "/auth/password/reset/:userId/:token",
-  handlers.getForgetPassword
-);
+// authRouter.post("/auth/password/reset/:verifyId", handlers.resetUserPassword);
 
 //signup the admin user and return access token
 authRouter.post("/auth/admin/signup", handlers.adminSignupHandle);
@@ -133,25 +136,8 @@ authRouter.get("/auth/signup/verify", handlers.verifyGetSignupHandle); //////// 
 //   handlers.resetUserPassword
 // );
 
-//admin
-
-//Auth
-
-// Swagger
-// authRouter.get("/swagger/*", swagger.HandlerDefault);
-
-// Login
-
-
-
 authRouter.get("/auth/logout", handlers.logout);
 authRouter.get("/auth/getUsers", handlers.getUsers);
 authRouter.get("/auth/getTokens", handlers.getTokens);
-
-//Admin
-
-// Signup
-
-// Password
 
 module.exports = authRouter;

@@ -91,7 +91,7 @@ exports.getUsersNotificationSettings = async function (userIds, userInfoInReq) {
   userHeaders["displayName"] = userInfoInReq.displayName;
   userHeaders["role"] = userInfoInReq.systemRole;
 
-  const resData = await microCall(post, model, url, userHeaders);
+  const resData = await microCall("post", model, url, userHeaders);
   if (resData == "") {
     return Error(`Cannot send request to ${url} - ${resData}`);
   }
@@ -136,7 +136,7 @@ const microCall = async (method, data, url, headers = {}) => {
     // handle axios error and throw correct error
     // https://github.com/axios/axios#handling-errors
     console.log(
-      `Error while sending admin check request!: callAPIWithHMAC ${httpReq}`
+      `Error while sending admin check request!: callAPIWithHMAC ${error}`
     );
     return Error(
       "Error while sending admin check request!: actionRoom/callAPIWithHMAC"
@@ -162,8 +162,6 @@ exports.updateEmailSent = async function (notifyIds) {
   } catch (error) {
     return error;
   }
-
-  return true;
 };
 
 // SaveNotification save the notification
@@ -249,7 +247,7 @@ exports.seenAllNotifications = async function (userId) {
     },
   };
   try {
-    await Notification.updateOne(filter, updateOperator);
+    await Notification.updateMany(filter, updateOperator);
   } catch (error) {
     return error;
   }
@@ -267,11 +265,10 @@ exports.deleteNotificationByOwner = async function (
     notifyRecieverUserId: notificationReceiverId,
   };
   try {
-    await Notification.deleteOne(filter, true);
+    return await Notification.deleteOne(filter);
   } catch (error) {
     return error;
   }
-  return true;
 };
 
 // DeleteNotificationsByUserId delete notifications by userId

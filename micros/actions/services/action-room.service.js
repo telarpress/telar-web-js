@@ -33,10 +33,25 @@ exports.setAccessKey = async function (userId) {
     const updateOperator = { accessKey: accessKey.toString() };
     await ActionRoom.updateOne(filter, { $set: updateOperator });
     return accessKey;
-  } catch (updateErr) {
-    return updateErr;
+  } catch (error) {
+    return error;
   }
 };
+
+// GetActionRoom get actionRoom by ownerUserId and actionRoomId
+exports.getActionRoomByOwner = async function (OwnerUserId, actionRoomUUID) {
+  try {
+    const filter = {
+      objectId: actionRoomUUID,
+      ownerUserId: OwnerUserId,
+    };
+    // return await ActionRoom.findOne(filter);
+    return await ActionRoom.findOne(filter);
+  } catch (error) {
+    return error;
+  }
+};
+
 // DeleteActionRoom delete actionRoom by ownerUserId and actionRoomId
 exports.deleteActionRoomByOwner = async function (OwnerUserId, actionRoomUUID) {
   try {
@@ -46,7 +61,7 @@ exports.deleteActionRoomByOwner = async function (OwnerUserId, actionRoomUUID) {
     };
     return await ActionRoom.deleteOne(filter);
   } catch (error) {
-    return updateErr;
+    return error;
   }
 };
 

@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require("uuid");
 const Schema = mongoose.Schema;
-// const MUUID = require("uuid-mongodb").mode("canonical");
 const notificationSchema = new Schema(
   {
     objectId: {
       type: "object",
       value: { type: "Buffer" },
-      // default: () => MUUID.v1(),
+      default: uuidv4(),
     },
     ownerUserId: {
       type: "object",
@@ -21,13 +21,11 @@ const notificationSchema = new Schema(
     notifyRecieverUserId: {
       type: "object",
       value: { type: "Buffer" },
-      // default: () => MUUID.v1(),
     },
     notifyRecieverEmail: { type: String },
     targetId: {
       type: "object",
       value: { type: "Buffer" },
-      // default: () => MUUID.v1(),
     },
     isSeen: { type: Boolean },
     type: { type: String },
