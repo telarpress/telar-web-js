@@ -14,7 +14,6 @@ exports.checkNotifyEmailHandle = async function (req, res) {
     if (notificationList.length <= 0) {
       return res.status(HttpStatusCode.OK).send();
     }
-
     let recIds = [];
     notificationList.forEach((notification) => {
       notification.isEmailSent = true;
@@ -34,18 +33,19 @@ exports.checkNotifyEmailHandle = async function (req, res) {
         );
     }
 
-    let userInfoInReq = new userInfoInReq({
-      userId: currentUser.userId,
-      username: currentUser.email,
-      avatar: currentUser.avatar,
-      displayName: currentUser.displayName,
-      systemRole: currentUser.role,
-    });
+    let userInfoInReq = {
+      userId: currentUserId.userId,
+      username: currentUserId.email,
+      avatar: currentUserId.avatar,
+      displayName: currentUserId.displayName,
+      systemRole: currentUserId.role,
+    };
 
-    const mappedSettings = notificationService.getUsersNotificationSettings(
-      recIds,
-      userInfoInReq
-    );
+    const mappedSettings =
+      await notificationService.getUsersNotificationSettings(
+        recIds,
+        userInfoInReq
+      );
     if (!mappedSettings) {
       log.Error(
         `[CheckNotifyEmailHandle] getUsersNotificationSettings ${error}`
@@ -59,14 +59,14 @@ exports.checkNotifyEmailHandle = async function (req, res) {
           ).json()
         );
     }
-
+    log.info(mappedSettings);
     let updateNotifyIds = [];
 
     notificationList.forEach((notification) => {
       let key = getSettingPath(
         notification.notifyRecieverUserId,
         notificationSettingType,
-        settingMappedFromNotify[notification.Type]
+        settingMappedFromNotify[notification.type]
       );
       if (mappedSettings[key] == "true") {
         log.Error(
@@ -315,7 +315,9 @@ exports.updateNotificationHandle = async function (req, res) {
     }
 
     try {
-      await notificationService.updateNotificationById(model, currentUser);
+      const updateNotification =
+        await notificationService.updateNotificationById(model, currentUser);
+      return res.status(HttpStatusCode.OK).send(updateNotification);
     } catch (error) {
       log.Error(
         `[UpdateNotificationHandle] - Update Notification Error ${error}`
@@ -329,8 +331,6 @@ exports.updateNotificationHandle = async function (req, res) {
           ).json()
         );
     }
-
-    return res.status(HttpStatusCode.OK).send();
   } catch (error) {
     log.Error(
       `[UpdateNotificationHandle] - Update Notification Error ${error}`
@@ -389,9 +389,12 @@ exports.seenNotificationHandle = async function (req, res) {
         );
     }
 
-    notificationService.seenNotification(notificationUUID, currentUserId);
+    const seenNotification = await notificationService.seenNotification(
+      notificationUUID,
+      currentUserId
+    );
 
-    return res.status(HttpStatusCode.OK).send();
+    return res.status(HttpStatusCode.OK).send(seenNotification);
   } catch (error) {
     log.Error(`Update Notification Error ${error}`);
     return res
@@ -431,8 +434,10 @@ exports.seenAllNotificationsHandle = async function (req, res) {
           ).json()
         );
     }
-    notificationService.seenAllNotifications(currentUserId);
-    return res.status(HttpStatusCode.OK).send();
+    const seenNotification = await notificationService.seenAllNotifications(
+      currentUserId
+    );
+    return res.status(HttpStatusCode.OK).send(seenNotification);
   } catch (error) {
     log.Error(`Seen All Notification Error ${error}`);
     return res
@@ -489,10 +494,21 @@ exports.deleteNotificationHandle = async function (req, res) {
         );
     }
 
-    notificationService.deleteNotificationByOwner(
-      currentUserId,
-      notificationUUID
-    );
+    const deleteNotification =
+      await notificationService.deleteNotificationByOwner(
+        currentUserId,
+        notificationUUID
+      );
+
+    if (deleteNotification.deletedCount == 0)
+      return res
+        .status(HttpStatusCode.NotFound)
+        .send(
+          new utils.ErrorHandler(
+            "notification.notificationService",
+            "There is no action when removing the notification!"
+          ).json()
+        );
 
     return res.status(HttpStatusCode.OK).send();
   } catch (error) {

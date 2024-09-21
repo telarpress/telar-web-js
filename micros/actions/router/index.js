@@ -17,6 +17,11 @@ const handlers = require("../handlers");
 
 // Router
 actionsRouter.post(
+  "/actions/dispatch/:roomId",
+  hmacCookieHandlers(false),
+  handlers.dispatchHandle
+);
+actionsRouter.post(
   "/actions/room",
   hmacCookieHandlers(false),
   handlers.createActionRoomHandle
@@ -42,15 +47,16 @@ actionsRouter.post(
   hmacCookieHandlers(true),
   handlers.verifyAccessKeyHandle
 );
+actionsRouter.get(
+  "/actions/room/:roomId",
+  hmacCookieHandlers(false),
+  handlers.getActionRoomHandle
+);
 actionsRouter.delete(
   "/actions/room/:roomId",
   hmacCookieHandlers(false),
   handlers.deleteActionRoomHandle
 );
-actionsRouter.post(
-  "/actions/dispatch/:roomId",
-  hmacCookieHandlers(false),
-  handlers.dispatchHandle
-);
+
 
 module.exports = actionsRouter;

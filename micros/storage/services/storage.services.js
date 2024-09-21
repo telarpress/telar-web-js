@@ -17,6 +17,14 @@ exports.createStoragrHandle = async function (storage) {
   return await newStorage.save();
 };
 
-exports.getFileHandle = function (objectId) {
-  return Storage.findOne({ _id: objectId });
+exports.getFileHandle = async function (folder, objectId) {
+  let filter = {
+    objectId: objectId,
+    folder: folder,
+  };
+  try {
+    return await Storage.findOne(filter);
+  } catch (error) {
+    return error;
+  }
 };

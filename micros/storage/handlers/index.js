@@ -113,7 +113,7 @@ exports.uploadeHandle = async function (req, res) {
 
 // GetFileHandle a function invocation
 exports.getFileHandle = async function (req, res) {
-  log.Error("File Upload Endpoint Hit");
+  log.info(" Download File Hit");
 
   const dirName = req.params.dir;
   if (dirName == "") {
@@ -143,7 +143,7 @@ exports.getFileHandle = async function (req, res) {
       );
   }
 
-  log.Error("Object ID: " + objectId);
+  log.info("Object ID: " + objectId);
 
   const userId = req.params.uid;
   if (userId == "") {
@@ -159,10 +159,10 @@ exports.getFileHandle = async function (req, res) {
       );
   }
 
-  log.Error("\n User ID: " + userId);
-
+  log.info("\n User ID: " + userId);
+  const folderName = userId + "/" + dirName;
   try {
-    const result = await storage.getFileHandle(objectId);
+    const result = await storage.getFileHandle(folderName, objectId);
     return res.status(HttpStatusCode.OK).send(result);
   } catch (error) {
     log.Error("UUID Error " + error);

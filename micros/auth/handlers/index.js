@@ -95,7 +95,7 @@ exports.signupTokenHandle = async (req, res) => {
           );
       }
     } catch (error) {
-      console.error("[Error][signupTokenHandle] ", error);
+     log.Error("[Error][signupTokenHandle] ", error);
       return res
         .status(HttpStatusCode.InternalServerError)
         .send(
@@ -153,6 +153,7 @@ exports.signupTokenHandle = async (req, res) => {
 
     // Create signup token
     const newUserId = uuidv4();
+    log.info(newUserId);
 
     const ip = req.clientIp;
 
@@ -170,12 +171,12 @@ exports.signupTokenHandle = async (req, res) => {
       fullName: req.body.fullName,
       userPassword: req.body.newPassword,
     };
-
+    log.info(tokenData);
     try {
       // authService.createEmailVerificationToken is a function that returns a token
-      console.log("createEmailVerificationToken ");
+      log.info("createEmailVerificationToken ");
       const result = await authService.createEmailVerificationToken(tokenData);
-      console.log("createEmailVerificationToken done! ");
+      log.info("createEmailVerificationToken done! ");
 
       if (req.body.responseType === "spa") {
         return res.send({ token: result });
@@ -241,7 +242,7 @@ exports.verifySignupHandle = async (req, res) => {
 
     const code = req?.body?.code;
     const token = req?.body?.verificaitonSecret;
-    console.log("START decoding", appConfig.PublicKey, remoteIpAddress);
+    log.info("START decoding", appConfig.PublicKey, remoteIpAddress);
     const claim = await validateToken(appConfig.PublicKey, token);
     const userRemoteIp = claim.remoteIpAddress;
     const verifyType = claim.verifyType;
@@ -253,7 +254,7 @@ exports.verifySignupHandle = async (req, res) => {
     const phoneNumber = claim.phoneNumber;
     const password = claim.password;
     const verifyTarget = verifyType === "emv" ? email : phoneNumber;
-    console.log(
+    log.info(
       `userId: ${userId}, fullName: ${fullName}, email: ${email}, password: ${password}, userRemoteIp: ${userRemoteIp}, verifyType: ${verifyType}, verifyMode: ${verifyMode}, verifyId: ${verifyId}`
     );
 
@@ -282,7 +283,7 @@ exports.verifySignupHandle = async (req, res) => {
       verifyTarget
     );
     if (!verifyStatus) {
-      console.error("The code is wrong!");
+      log.Error("The code is wrong!");
       return res
         .status(400)
         .json({ error: "wrongCode", message: "The code is wrong!" });
@@ -293,7 +294,7 @@ exports.verifySignupHandle = async (req, res) => {
 
     if (!hashPassword) {
       const errorMessage = `Cannot hash the password!`;
-      console.error(errorMessage);
+      log.Error(errorMessage);
       return res.status(500).json({
         error: "internal",
         message: "Error happened during verification!",
@@ -333,7 +334,7 @@ exports.verifySignupHandle = async (req, res) => {
       try {
         await saveUserProfile(newUserProfile);
       } catch (error) {
-        console.error(`Save user profile ${error.message}`);
+        log.Error(`Save user profile ${error.message}`);
         return res.status(500).json({
           error: "canNotSaveUserProfile",
           message: "Cannot save user profile!",
@@ -359,7 +360,7 @@ exports.verifySignupHandle = async (req, res) => {
         .status(200)
         .send("User authentication and profile setup successful");
     } catch (error) {
-      console.error(
+      log.Error(
         `Error occurred during user authentication and profile setup: ${error.message}`
       );
       return res.status(500).json({
@@ -522,11 +523,12 @@ exports.loginTelarHandler = async (req, res) => {
         displayName: "",
       }
     );
+
     const [profileResult, langResult] = await Promise.all([
       profileChannel,
       langChannel,
     ]);
-    console.log("profileResult ", JSON.stringify(profileResult));
+    log.info("profileResult ", JSON.stringify(profileResult));
     let currentUserLang = "en";
     log.Error(`langResult.settings ${JSON.stringify(langResult.settings)}`);
 
@@ -679,7 +681,7 @@ exports.adminSignupHandle = async (req, res) => {
 
     const newUserProfile = {
       socialName: await this.generateSocialName(fullName, userUUID),
-      id: userUUID,
+      objectId: userUUID,
       fullName: fullName,
       email: email,
       // password: profile.password,
@@ -751,18 +753,18 @@ exports.adminSignupHandle = async (req, res) => {
     const session = await generateTokens.createToken(tokenModel);
     log.Error(`\nSession is created: ${session} \n`);
 
-    return res.status(HttpStatusCode.OK).send({ token: session });
+    return res.status(HttpStatusCode.OK).send({ token: session }).json();
   } catch (error) {
     log.Error(
       "auth.adminSignupHandle",
-      "Cannot save user authentication! error: " + error
+      "Cannot login user authentication! error: " + error
     );
     return res
       .status(HttpStatusCode.Unauthorized)
       .send(
         new utils.ErrorHandler(
           "auth.adminSignupHandle",
-          "Cannot save user authentication!"
+          "Cannot login user authentication!"
         ).json()
       );
   }
@@ -833,16 +835,22 @@ exports.loginAdminHandler = async (req, res) => {
   }
 
   try {
-    const profileChannel = authService.getUserProfileByID(foundUser.objectId);
+    const profileChannel = await authService.getUserProfileByID(
+      foundUser.objectId
+    );
     if (!profileChannel) {
       log.Error(`loginHandler: Profile doesn't exist ${profileChannel}`);
     }
-    let avatar;
-    let socialName;
-    await profileChannel.then((profile) => {
-      avatar = profile.avatar;
-      socialName = profile.socialName;
-    });
+
+    // let avatar;
+    // let socialName;
+    // await profileChannel.then((profile) => {
+    //   avatar = profile.avatar;
+    //   socialName = profile.socialName;
+    // });
+
+    let avatar = profileChannel.avatar;
+    let socialName = profileChannel.socialName;
 
     const langChannel = authService.readLanguageSettingAsync(
       foundUser.objectId,
@@ -945,23 +953,55 @@ exports.logout = (req, res) => {
 // Get Change password Page
 exports.getResetUserPassword = async (req, res) => {
   try {
-    await authService.findUserById(res.locals.user.uid);
+    const reqUserId = req.params.userId;
+    const reqToken = req.params.token;
+    if (!reqUserId || !reqToken) {
+      log.Error("ForgetPassHandle: Input Value Problem");
+      return res
+        .status(HttpStatusCode.Unauthorized)
+        .send(
+          new utils.ErrorHandler("auth.missinginput", "Missing Value").json()
+        );
+    }
+
+    const token = await authService.checkTokenExistByUserId(
+      reqUserId,
+      reqToken
+    );
+
+    if (!token) {
+      log.Error("ForgetPassHandle: user Token Problem");
+      return res
+        .status(HttpStatusCode.InternalServerError)
+        .send(
+          new utils.ErrorHandler(
+            "auth.missingforgettoken",
+            "Missing Token forget password"
+          ).json()
+        );
+    }
+    const link =
+      "https://api.solar.local/auth/password/reset/" +
+      reqUserId +
+      "/" +
+      reqToken;
+
     var viewData = {
       AppName: appConfig.APP_NAME,
-      ActionForm: "/auth/password/reset",
+      ActionForm: link,
       LoginLink: "/auth/login",
       OrgName: appConfig.ORG_NAME,
       Title: "Reset User Password",
       OrgAvatar: appConfig.ORG_AVATAR,
     };
-    res.render("reset_password", viewData);
+    res.render("reset_password_link", viewData);
   } catch (error) {
     log.Error("ResetPassHandle: Find User Problem");
     return res
       .status(HttpStatusCode.InternalServerError)
       .send(
         new utils.ErrorHandler(
-          "auth.missingloginFind",
+          "auth.missingResetFind",
           "Missing Find User"
         ).json()
       );
@@ -1074,7 +1114,7 @@ exports.forgetPasswordCodeHandler = async (req, res) => {
   if (!user) {
     log.Error(`ForgetPassHandle : User not exist by email : ${user}`);
     return res
-      .status(HttpStatusCode.Conflict)
+      .status(HttpStatusCode.BadRequest)
       .send(
         new utils.ErrorHandler(
           "forgetNotExist",
@@ -1082,6 +1122,7 @@ exports.forgetPasswordCodeHandler = async (req, res) => {
         ).json()
       );
   }
+
   const token = await authService.createToken(user.objectId);
 
   let sendMail = false;
@@ -1207,7 +1248,7 @@ exports.getForgetPasswordPage = async (req, res) => {
     OrgName: appConfig.ORG_NAME,
     Title: "Forget Password",
     OrgAvatar: appConfig.ORG_AVATAR,
-    ActionForm: "/auth/password/forgetbyemail",
+    ActionForm: "/auth/password/forget",
   };
   res.render("forget_password", viewData);
 };
@@ -1253,8 +1294,9 @@ exports.forgetPassword = async (req, res) => {
   // let token = await authService.getTokenByUserId(user.objectId);
   // if (!token)
   const token = await authService.createToken(user.objectId);
+
   // const link = `${appConfig.AUTH_WEB_URI}/forget_password/${user.objectId}/${token.code}`;
-  const link = `${appConfig.AUTH_WEB_URI}/password/forgetbyemail/${user.objectId}/${token.code}`;
+  const link = `${appConfig.AUTH_WEB_URI}/password/reset/${user.objectId}/${token.code}`;
 
   let sendMail = false;
   sendMail = await sendEmail(
@@ -1283,10 +1325,14 @@ exports.forgetPassword = async (req, res) => {
 };
 
 // Forget password
-exports.getForgetPassword = async (req, res) => {
+exports.getResetPassword = async (req, res) => {
   const reqUserId = req.params.userId;
   const reqToken = req.params.token;
-  if (!reqUserId || !reqToken) {
+
+  if (
+    (!reqUserId || !reqToken) &&
+    req.body.newPassword === req.body.confirmPassword
+  ) {
     log.Error("ForgetPassHandle: Input Value Problem");
     return res
       .status(HttpStatusCode.Unauthorized)
@@ -1295,22 +1341,37 @@ exports.getForgetPassword = async (req, res) => {
       );
   }
 
-  const user = await authService.findUserById(reqUserId);
-  if (!user) {
-    log.Error("ForgetPassHandle: find user Problem");
+  try {
+    const passStrength = await zxcvbn(req.body.newPassword);
+
+    if (passStrength.guesses < 37) {
+      log.Error(
+        ` *** WARNING ***  Password Strength is: ${passStrength.guesses} and ${passStrength.crack_times_display.online_no_throttling_10_per_second} crack time estimations`
+      );
+      return res
+        .status(HttpStatusCode.BadRequest)
+        .send(
+          new utils.ErrorHandler(
+            "auth.needStrongerChangePassword",
+            "Password is not strong enough!"
+          ).json()
+        );
+    }
+  } catch (error) {
+    log.Error("[Error][changePasswordHandle] ", error);
     return res
       .status(HttpStatusCode.InternalServerError)
       .send(
         new utils.ErrorHandler(
-          "missingforgetfinduser",
-          "Missing find forget user"
+          "internal/password",
+          "Error happened in changing password!"
         ).json()
       );
   }
 
   const token = await authService.checkTokenExistByUserId(
-    user.objectId,
-    req.params.token
+    token.userId,
+    reqToken
   );
 
   if (!token) {
@@ -1325,16 +1386,16 @@ exports.getForgetPassword = async (req, res) => {
       );
   }
   await authService.addCounterAndLastUpdate(token.objectId);
+  await authService.changeUserPasswordByCode(
+    token.userId,
+    req.body.newPassword,
+    reqToken
+  );
 
-  await authService.emptyTokenCode(user.objectId);
-
-  const salt = await bcrypt.genSalt(Number(appConfig.SALT));
-  const hashPassword = await bcrypt.hash("123456", salt);
-  user.password = hashPassword;
-  user.save();
+  await authService.emptyTokenCode(token.objectId);
 
   var viewData = {
-    Message: `${user.username} change password to 123456 sucessfully. Please change the password immediately`,
+    Message: `${token.target} change password sucessfully.`,
   };
   return res.render("message", viewData);
 };
@@ -1353,6 +1414,7 @@ exports.changePasswordHandler = async (req, res) => {
           ).json()
         );
     }
+
     await authService.changeUserPasswordByUserId(
       req.body.oldPassword,
       uid,

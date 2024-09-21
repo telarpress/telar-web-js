@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-// const MUUID = require("uuid-mongodb").mode("canonical");
+const { v4: uuidv4 } = require("uuid");
 const actionRoomSchema = new Schema(
   {
     objectId: {
       type: "object",
       value: { type: "Buffer" },
-      // default: () => MUUID.v1(),
+      default: uuidv4(),
     },
     created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
     ownerUserId: {

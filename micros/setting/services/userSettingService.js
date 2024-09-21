@@ -68,24 +68,82 @@ exports.findIdByAccessToken = async function (token) {
 };
 
 exports.getAllUserSetting = async function (userId) {
-  const userSetting = await UserSetting.find({ ownerUserId: userId });
-  let groupSettingsMap = [];
-  userSetting.forEach((setting) => {
-    let settingModel = {
-      objectId: setting.objectId,
-      name: setting.name,
-      value: setting.value,
-      isSystem: setting.isSystem,
-    };
-    let type = [setting.type];
-    groupSettingsMap = groupSettingsMap.concat(type, settingModel);
-  });
-  let groupSettingsModel = {
-    type: userSetting[0].type,
-    createdDate: userSetting[0].created_date,
-    ownerUserId: userSetting[0].ownerUserId,
-    list: groupSettingsMap,
-  };
+  try {
+    const userSettings = await UserSetting.find({
+      ownerUserId: userId,
+    }).exec();
 
-  return groupSettingsModel;
+    const mappedSettings = userSettings.reduce((acc, setting) => {
+      const { _id, name, value, type, isSystem } = setting;
+      const formattedSetting = {
+        objectId: _id.toString(),
+        name,
+        value,
+        isSystem,
+      };
+
+      if (!acc[type]) {
+        acc[type] = [];
+      }
+
+      acc[type].push(formattedSetting);
+      return acc;
+    }, {});
+
+    return mappedSettings;
+  } catch (error) {
+    console.error("Error fetching user settings:", error);
+    return {};
+  }
+};
+
+exports.getUserSettingById = async function (userId) {
+  return await UserSetting.find({
+    ownerUserId: userId,
+  });
+};
+
+exports.deleteUserSettingById = async function (userId) {
+  return await UserSetting.deleteMany({
+    ownerUserId: userId,
+  });
+};
+
+exports.getUserSettings = async function (ownerUserId, page, search, type) {
+  // let sortMap = {};
+  // sortMap["sortBy"] = -1;
+  // let skip = numberOfItems * (page - 1);
+
+  let filter = {
+    ownerUserId: ownerUserId,
+    name: search,
+    type: type,
+  };
+  try {
+    return await findUserSettingsList(filter);
+  } catch (error) {
+    return error;
+  }
+};
+// FindUserSettingsList get all settings by filter
+async function findUserSettingsList(filter) {
+  try {
+    return await UserSetting.find(filter);
+  } catch (error) {
+    return error;
+  }
+}
+
+exports.createUserSettings = async function (ownerUserId, name, type, value) {
+  let filter = {
+    ownerUserId: ownerUserId,
+    name: name,
+    value: value,
+    type: type,
+  };
+  try {
+    return await UserSetting.insertMany(filter);
+  } catch (error) {
+    return error;
+  }
 };

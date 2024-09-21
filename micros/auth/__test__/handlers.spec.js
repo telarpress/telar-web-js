@@ -9,11 +9,12 @@ const email = "akcpuemail526@akcpu.com";
 const newPassword = "akcpuemail56@akcpu.com";
 const confirmPassword = "akcpuemail56@akcpu.com";
 const gRecaptchaResponse = "true";
+const log = require("../../../core/utils/errorLogger");
 
 describe("Signup", () => {
   it("signupPageHandler", () => {
     const signupPageHandlerTest = signupPageHandler();
-    console.log(signupPageHandlerTest);
+    log.info(signupPageHandlerTest);
 
     expect(signupPageHandler).toContain("m");
   });
@@ -28,7 +29,7 @@ describe("Signup", () => {
         "g-recaptcha-response": gRecaptchaResponse,
       },
     });
-    console.log(signupTokenHandler);
+    log.info(signupTokenHandler);
 
     expect(signupTokenHandler).resolves();
   });

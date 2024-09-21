@@ -1,5 +1,5 @@
-const prod = require("../../../config/config.production.json");
 const dev = require("../../../config/config.development.json");
+const prod = require("../../../config/config.production.json");
 
 const config = process.env.Node_ENV == "production" ? prod : dev;
 
@@ -64,7 +64,7 @@ exports.appConfig = {
   HMAC_NAME: config.environment.hmac_header_name,
   HMAC_KEY: process.env.HMAC_KEY,
   ADMIN_USERNAME: process.env.ADMIN_USERNAME,
-  ADMIN_PASSWORD: process.env.ADMIN_USERNAME,
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   PublicKey: decodeBase64(process.env.PUBKEY),
 };
 // decodeBase64 Decode base64 string

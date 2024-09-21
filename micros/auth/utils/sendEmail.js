@@ -24,11 +24,8 @@ exports.sendEmail = async function (
     }
 
     const transporter = nodemailer.createTransport(transportOptions);
-
     const templatePath = __dirname + "/../views/" + templateFile + ".html";
-    console.log('fs.readFile(templatePath, { encoding: "');
     let html = await fs.readFile(templatePath, { encoding: "utf-8" });
-    console.log('fs.readFile(templatePath, { encoding: "done');
 
     const mapObj = {
       "{{AppURL}}": appConfig.WEB_URL,
@@ -41,9 +38,7 @@ exports.sendEmail = async function (
       "{{OrgName}}": appConfig.ORG_NAME,
     };
 
-    console.log("html.replace(/}/g,");
     html = html.replace(/{{\w+}}/g, (matched) => mapObj[matched]);
-    console.log("html.replace(+}}/gdone");
 
     const mailOptions = {
       from: appConfig.REF_EMAIL,

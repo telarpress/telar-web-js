@@ -17,11 +17,6 @@ const handlers = require("../handlers");
 
 // Router
 notificationsRouter.post(
-  "/notifications/check",
-  hmacCookieHandlers(false),
-  handlers.checkNotifyEmailHandle
-);
-notificationsRouter.post(
   "/notifications",
   hmacCookieHandlers(false),
   handlers.createNotificationHandle
@@ -31,6 +26,22 @@ notificationsRouter.put(
   hmacCookieHandlers(false),
   handlers.updateNotificationHandle
 );
+notificationsRouter.get(
+  "/notifications",
+  hmacCookieHandlers(true),
+  handlers.getNotificationsByUserIdHandle
+);
+notificationsRouter.delete(
+  "/notifications/id/:notificationId",
+  hmacCookieHandlers(true),
+  handlers.deleteNotificationHandle
+);
+notificationsRouter.get(
+  "/notifications/:notificationId",
+  hmacCookieHandlers(true),
+  handlers.getNotificationHandle
+);
+
 notificationsRouter.put(
   "/notifications/seen/:notificationId",
   hmacCookieHandlers(true),
@@ -42,24 +53,16 @@ notificationsRouter.put(
   handlers.seenAllNotificationsHandle
 );
 notificationsRouter.delete(
-  "/notifications/id/:notificationId",
-  hmacCookieHandlers(true),
-  handlers.deleteNotificationHandle
-);
-notificationsRouter.delete(
   "/notifications/my",
   hmacCookieHandlers(true),
   handlers.deleteNotificationByUserIdHandle
 );
-notificationsRouter.get(
-  "/notifications",
-  hmacCookieHandlers(true),
-  handlers.getNotificationsByUserIdHandle
-);
-notificationsRouter.get(
-  "/notifications/:notificationId",
-  hmacCookieHandlers(true),
-  handlers.getNotificationHandle
+
+// TODO: Check
+notificationsRouter.post(
+  "/notifications/check",
+  hmacCookieHandlers(false),
+  handlers.checkNotifyEmailHandle
 );
 
 module.exports = notificationsRouter;

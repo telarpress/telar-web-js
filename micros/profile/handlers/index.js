@@ -105,7 +105,7 @@ exports.readDtoProfileHandle = async function (req, res) {
     //     );
     // }
     const findProfile = await profileService.getProfileById(userId);
-    return res.status(HttpStatusCode.OK).send(findProfile).json();
+    return res.status(HttpStatusCode.OK).send(findProfile);
   } catch (error) {
     log.Error(`[ReadDtoProfileHandle] Could not find user ${error}`);
     return res
@@ -153,7 +153,6 @@ exports.readProfileHandle = async function (req, res) {
         ).json()
       );
   }
-
   try {
     const findProfile = await profileService.getProfileById(req.params.userId);
     return res.status(HttpStatusCode.OK).send(findProfile);
@@ -420,6 +419,7 @@ exports.dispatchProfilesHandle = async function (req, res) {
     const foundUsers = await profileService.findProfileByUserIds(
       req.body.userIds
     );
+
     let mappedUsers = {};
     for (let index = 0; index < foundUsers.length; index++) {
       let mappedUser = {};
@@ -446,12 +446,11 @@ exports.dispatchProfilesHandle = async function (req, res) {
       type: "SET_USER_ENTITIES",
       payload: { actionRoomPayload },
     };
-
     const currentUser = await profileService.getProfileById(
       res.locals.user.uid
     );
 
-    if (!(currentUser.objectId === req.body.objectId)) {
+    if (!(currentUser.objectId === req.body.reqUserId)) {
       log.Error("[DispatchProfilesHandle] Can not get current user");
       return res
         .status(HttpStatusCode.BadRequest)
@@ -462,6 +461,7 @@ exports.dispatchProfilesHandle = async function (req, res) {
           ).json()
         );
     }
+
     const userInfoReq = {
       userId: currentUser.objectId,
       username: currentUser.email,
@@ -469,7 +469,8 @@ exports.dispatchProfilesHandle = async function (req, res) {
       displayName: currentUser.socialName,
       systemRole: currentUser.permission[0],
     };
-
+    log.info(activeRoomAction);
+    log.info(userInfoReq);
     const resData = await dispatchAction(activeRoomAction, userInfoReq);
 
     return res.status(HttpStatusCode.OK).send(resData);
@@ -493,7 +494,7 @@ async function dispatchAction(action, userInfoInReq) {
   try {
     const actionBytes = action.payload.actionRoomPayload.users.mappedUsers;
     // Create user headers for http request
-    const config = {
+    let config = {
       headers: {
         uid: userInfoInReq.userId,
         email: userInfoInReq.username,
@@ -503,11 +504,18 @@ async function dispatchAction(action, userInfoInReq) {
       },
       timeout: 1000,
     };
-    const response = await axios.post(actionURL, actionBytes, config);
+    const HMACDATA = hmac.sign2(actionBytes, appConfig.HMAC_KEY);
+    config.headers[appConfig.HMAC_NAME] = HMACDATA;
+    config.headers["ORIGIN"] = appConfig.GATEWAY;
+    const response = await axios.post(
+      "https://api.solar.local" + actionURL,
+      actionBytes,
+      config
+    );
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error))
-      log.Error("Cannot send action request! error" + error);
+      log.Error("Cannot send action request! error " + error);
   }
 }
 
@@ -537,7 +545,6 @@ exports.initProfileIndexHandle = async function (req, res) {
 exports.updateProfile = async function (req, res) {
   try {
     const {
-      objectId,
       fullName,
       socialName,
       avatar,
@@ -568,20 +575,10 @@ exports.updateProfile = async function (req, res) {
       accessUserList,
       permission,
     } = req.body;
+
     const profile = await profileService.getProfileById(res.locals.user.uid);
 
-    if (!(profile.objectId === objectId)) {
-      log.Error("updateProfile: Update Profile objectId Problem");
-      return res
-        .status(HttpStatusCode.BadRequest)
-        .send(
-          new utils.ErrorHandler(
-            "profile.missingUpdateProfile",
-            "Missing Update Profile"
-          ).json()
-        );
-    }
-    profile.objectId = objectId;
+    profile.objectId = res.locals.user.uid;
     profile.fullName = fullName;
     profile.socialName = socialName;
     profile.avatar = avatar;

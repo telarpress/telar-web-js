@@ -8,7 +8,7 @@ const UserVerificationTokenSchema = new Schema(
     target: { type: String, required: true },
     targetType: { type: String, required: true },
     counter: { type: Number, default: 0 },
-    created_date: { type: Date, default: Date.now },
+    created_date: { type: Number, default: Math.floor(Date.now() / 1000) },
     remoteIpAddress: { type: String, required: true },
     userId: { type: String, required: true, trim: true, unique: true },
     isVerified: { type: Boolean, required: true, default: false },

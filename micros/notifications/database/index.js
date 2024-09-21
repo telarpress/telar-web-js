@@ -14,9 +14,9 @@ async function connectToMongoDB() {
       useUnifiedTopology: true,
       // Additional options if needed
     });
-    console.log("Connected to MongoDB");
+    log.info("Connected to MongoDB");
   } catch (error) {
-    console.error("Error connecting to MongoDB:", error);
+    log.Error("Error connecting to MongoDB:", error);
     throw error; // Rethrow the error for handling it outside
   }
 }

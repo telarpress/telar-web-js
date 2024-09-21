@@ -44,4 +44,27 @@ settingRouter.post(
   handlers.getSettingByUserIds
 );
 
+settingRouter.get(
+  "/setting/userSettings/:key",
+  hmacCookieHandlers(false),
+  handlers.getUserSetting
+);
+settingRouter.delete(
+  "/setting/userSettings/:key",
+  hmacCookieHandlers(false),
+  handlers.deleteUserSetting
+);
+settingRouter.post(
+  "/setting/user-setting",
+  hmacCookieHandlers(false),
+  handlers.createUserSettingsHandle
+);
+
+//TODO: Check
+settingRouter.get(
+  "/setting/userSettings",
+  hmacCookieHandlers(false),
+  handlers.getUserSettingsHandle
+);
+
 module.exports = settingRouter;

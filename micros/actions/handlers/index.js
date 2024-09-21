@@ -48,7 +48,7 @@ exports.createActionRoomHandle = async function (req, res) {
     const createActionRoom = await actionRoomService.saveActionRoom(
       newActionRoom
     );
-    return res.status(HttpStatusCode.OK).send(createActionRoom).json();
+    return res.status(HttpStatusCode.OK).send(createActionRoom);
   } catch (error) {
     log.Error("Save ActionRoom Error " + error);
     return res
@@ -152,7 +152,7 @@ exports.updateActionRoomHandle = async function (req, res) {
     const updatedActionRoomReult = await actionRoomService.updateActionRoomById(
       updatedActionRoom
     );
-    return res.status(HttpStatusCode.OK).send(updatedActionRoomReult).json();
+    return res.status(HttpStatusCode.OK).send(updatedActionRoomReult);
   } catch (error) {
     log.Error("Update ActionRoom Error " + error);
     return res
@@ -182,7 +182,7 @@ exports.setAccessKeyHandle = async function (req, res) {
   }
   try {
     const accessKey = await actionRoomService.setAccessKey(currentUserId);
-    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
+    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey });
   } catch (error) {
     log.Error("Set access key Error " + error);
     return res
@@ -195,6 +195,64 @@ exports.setAccessKeyHandle = async function (req, res) {
       );
   }
 };
+
+// GetActionRoomHandle handle get a ActionRoom
+exports.getActionRoomHandle = async function (req, res) {
+  // params from /actions/room/:roomId
+  const actionRoomId = req.params.roomId;
+  if (actionRoomId == "") {
+    log.Error("ActionRoom Id is required!");
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "actionRoom.actionRoomIdRequired",
+          "ActionRoom Id is required!"
+        ).json()
+      );
+  }
+
+  const currentUserId = res.locals.user.uid;
+  if (!currentUserId || currentUserId == null) {
+    log.Error("[GetActionRoomHandle] Can not get current user");
+    return res
+      .status(HttpStatusCode.Unauthorized)
+      .send(
+        new utils.ErrorHandler(
+          "actionRoom.invalidCurrentUser",
+          "Can not get current user"
+        ).json()
+      );
+  }
+  try {
+    const getAction = await actionRoomService.getActionRoomByOwner(
+      currentUserId,
+      actionRoomId
+    );
+    if (!getAction) {
+      return res
+        .status(HttpStatusCode.NotFound)
+        .send(
+          new utils.ErrorHandler(
+            "actionRoom.actionRoomService",
+            "There is no action when geting the action room!"
+          ).json()
+        );
+    }
+    return res.status(HttpStatusCode.OK).send({ getAction: getAction });
+  } catch (error) {
+    log.Error("Get ActionRoom Error " + error);
+    return res
+      .status(HttpStatusCode.InternalServerError)
+      .send(
+        new utils.ErrorHandler(
+          "actionRoom.actionRoomService",
+          "Error happend while geting action room!"
+        ).json()
+      );
+  }
+};
+
 // DeleteActionRoomHandle handle delete a ActionRoom
 exports.deleteActionRoomHandle = async function (req, res) {
   // params from /actions/room/:roomId
@@ -268,7 +326,7 @@ exports.getAccessKeyHandle = async function (req, res) {
 
   try {
     const accessKey = await actionRoomService.getAccessKey(currentUserId);
-    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey }).json();
+    return res.status(HttpStatusCode.OK).send({ accessKey: accessKey });
   } catch (error) {
     log.Error("[actionRoomService.GetAccessKey] " + currentUserId + error);
     return res

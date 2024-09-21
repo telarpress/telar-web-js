@@ -88,10 +88,7 @@ exports.generateRandomNumber = function (min, max) {
 exports.createDtoProfileHandle = async function (profile) {
   console.log("createDtoProfileHandle ", JSON.stringify(profile));
   const newProfile = new UserProfile({
-    socialName: await this.generateSocialName(
-      profile.fullName,
-      profile.objectId
-    ),
+    socialName: profile.socialName,
     objectId: profile.objectId,
     fullName: profile.fullName,
     email: profile.email,
